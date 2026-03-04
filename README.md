@@ -26,10 +26,19 @@ Cada casamento é um tenant isolado. O primeiro tenant é o casamento **Manoela 
 ## Quick Start
 
 ```bash
-cp .env.example .env    # configurar variáveis (JWT_SECRET, seed, etc.)
+cp .env.example .env    # preencher variáveis — ver docs/configuration.md
 make setup              # go mod tidy + copia .env se não existir
 make run                # sobe o servidor (carrega .env automaticamente)
 ```
+
+**Antes de rodar**, gere valores seguros para `JWT_SECRET` e `SEED_ADMIN_PASSWORD`:
+
+```bash
+openssl rand -base64 32    # gera JWT_SECRET
+openssl rand -base64 20    # gera senha para SEED_ADMIN_PASSWORD
+```
+
+Consulte [docs/configuration.md](docs/configuration.md) para instruções detalhadas sobre cada variável, incluindo como obter credenciais do Mercado Pago.
 
 O servidor sobe em `http://localhost:8080`. O arquivo `.env` é carregado automaticamente via godotenv.
 
@@ -39,18 +48,18 @@ O servidor sobe em `http://localhost:8080`. O arquivo `.env` é carregado automa
 ├── cmd/api/              # Entrypoint (bootstrap, graceful shutdown)
 ├── internal/
 │   ├── domain/           # Entidades e interfaces de repositório
-│   │   ├── entity/       # Wedding, erros de domínio (futuro: Invitation, Guest, Gift, Payment)
-│   │   └── repository/   # Interfaces (WeddingRepository, etc.)
-│   ├── usecase/          # Casos de uso (regras de negócio)
+│   │   ├── entity/       # Wedding, Invitation, Guest, erros de domínio
+│   │   └── repository/   # Interfaces (Wedding, Invitation, Guest)
+│   ├── usecase/          # Casos de uso (wedding, rsvp, invitation, guest)
 │   ├── dto/              # Objetos de transferência (request/response)
 │   └── infra/
 │       ├── database/     # Conexão SQLite, migrações, repositórios
 │       ├── gateway/      # Clientes externos (Mercado Pago — futuro)
 │       ├── web/
-│       │   ├── handler/  # Handlers HTTP + helpers (response, validator)
+│       │   ├── handler/  # auth, rsvp, invitation, guest, dashboard, health
 │       │   └── middleware/ # Auth JWT, TenantResolver, Logger, Recovery
 │       └── config/       # Leitura de env vars
-├── migrations/           # SQL migrations (up/down)
+├── migrations/           # SQL migrations (001-003 implementadas)
 ├── docs/                 # Documentação detalhada
 └── .cursor/rules/        # Convenções para o Cursor AI
 ```
@@ -59,6 +68,7 @@ O servidor sobe em `http://localhost:8080`. O arquivo `.env` é carregado automa
 
 | Documento | Conteúdo |
 |-----------|----------|
+| [docs/configuration.md](docs/configuration.md) | Guia de configuração do `.env` (JWT, senhas, Mercado Pago) |
 | [docs/roadmap.md](docs/roadmap.md) | Roadmap por fases e prioridades |
 | [docs/architecture.md](docs/architecture.md) | Arquitetura, multi-tenancy e decisões técnicas |
 | [docs/api.md](docs/api.md) | Endpoints, contratos e exemplos |

@@ -19,18 +19,18 @@ Setup do projeto, estrutura base e infraestrutura mínima.
 - [x] Erros de domínio (ErrNotFound, ErrUnauthorized, etc.)
 - [ ] Dockerfile
 
-## Fase 2 — Confirmação de Presença (RSVP) `URGENTE`
+## Fase 2 — Confirmação de Presença (RSVP) ✅
 
 Feature principal. Sem isso, os convidados não conseguem confirmar presença.
 
-- [ ] Entidades Invitation + Guest
-- [ ] Migrações SQL
-- [ ] Repositórios SQLite (scoped por wedding_id)
-- [ ] Use case RSVP (buscar por nome no tenant, confirmar, recusar)
-- [ ] Use case CRUD de convites (admin, scoped por wedding_id)
-- [ ] Use case CRUD de convidados (admin, scoped)
-- [ ] Handlers públicos: `POST /w/{weddingId}/rsvp`, `GET /w/{weddingId}/rsvp/invitation`
-- [ ] Handlers admin: CRUD invitations, CRUD guests, dashboard
+- [x] Entidades Invitation + Guest
+- [x] Migrações SQL (002_create_invitations, 003_create_guests)
+- [x] Repositórios SQLite (scoped por wedding_id)
+- [x] Use case RSVP (buscar por nome no tenant, confirmar, idempotência)
+- [x] Use case CRUD de convites (admin, scoped por wedding_id)
+- [x] Use case CRUD de convidados (admin, scoped)
+- [x] Handlers públicos: `POST /w/{weddingId}/rsvp`, `GET /w/{weddingId}/rsvp/invitation`
+- [x] Handlers admin: CRUD invitations, CRUD guests, dashboard
 - [ ] Testes unitários dos use cases
 - [ ] Integração com o frontend (ajustar form action + JS de submit)
 
@@ -77,7 +77,7 @@ Evoluções para oferecer o serviço a outros casais.
 | Fase | Prioridade | Meta |
 |------|-----------|------|
 | Fase 1 | ~~Bloqueante~~ ✅ | — |
-| Fase 2 | Urgente | Próxima |
+| Fase 2 | ~~Urgente~~ ✅ | — |
 | Fase 3 | Urgente | Após Fase 2 |
 | Fase 4 | Importante | Antes do casamento (07.07.2026) |
 | Fase 5 | Futuro | Pós-casamento |

@@ -214,8 +214,8 @@ CREATE UNIQUE INDEX idx_invitations_wedding_code ON invitations(wedding_id, code
 
 CREATE INDEX idx_guests_invitation_id ON guests(invitation_id);
 CREATE INDEX idx_guests_wedding_id ON guests(wedding_id);
-CREATE INDEX idx_guests_status ON guests(wedding_id, status);
-CREATE INDEX idx_guests_name ON guests(wedding_id, name COLLATE NOCASE);
+CREATE INDEX idx_guests_wedding_status ON guests(wedding_id, status);
+CREATE INDEX idx_guests_wedding_name ON guests(wedding_id, name COLLATE NOCASE);
 
 CREATE INDEX idx_gifts_wedding_id ON gifts(wedding_id);
 CREATE INDEX idx_gifts_category ON gifts(wedding_id, category);

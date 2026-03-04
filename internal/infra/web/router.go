@@ -10,14 +10,20 @@ import (
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/domain/repository"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/web/handler"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/web/middleware"
+	"github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/guest"
+	"github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/invitation"
+	"github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/rsvp"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/wedding"
 )
 
 type RouterDeps struct {
-	WeddingUC   *wedding.UseCase
-	WeddingRepo repository.WeddingRepository
-	JWTSecret   string
-	CORSOrigins string
+	WeddingUC    *wedding.UseCase
+	RSVPUC       *rsvp.UseCase
+	InvitationUC *invitation.UseCase
+	GuestUC      *guest.UseCase
+	WeddingRepo  repository.WeddingRepository
+	JWTSecret    string
+	CORSOrigins  string
 }
 
 func NewRouter(deps RouterDeps) *chi.Mux {
@@ -38,23 +44,46 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 	r.Use(chimiddleware.RealIP)
 
 	authHandler := handler.NewAuthHandler(deps.WeddingUC)
+	rsvpHandler := handler.NewRSVPHandler(deps.RSVPUC)
+	invHandler := handler.NewInvitationHandler(deps.InvitationUC)
+	guestHandler := handler.NewGuestHandler(deps.GuestUC)
+	dashHandler := handler.NewDashboardHandler(deps.GuestUC)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", handler.Health)
 
-		// Endpoints públicos (requerem weddingId na URL)
+		// Endpoints públicos (tenant via UUID na URL)
 		r.Route("/w/{weddingId}", func(r chi.Router) {
 			r.Use(middleware.TenantResolver(deps.WeddingRepo))
-			// RSVP e gifts serão registrados aqui nas próximas fases
+
+			r.Post("/rsvp", rsvpHandler.Confirm)
+			r.Get("/rsvp/invitation", rsvpHandler.LookupInvitation)
 		})
 
 		// Autenticação
 		r.Post("/admin/auth", authHandler.Login)
 
-		// Endpoints admin (requerem JWT)
+		// Endpoints admin (tenant via JWT)
 		r.Route("/admin", func(r chi.Router) {
 			r.Use(middleware.Auth(deps.JWTSecret))
-			// CRUD de invitations, guests, gifts, payments serão registrados aqui
+
+			r.Get("/dashboard", dashHandler.Get)
+
+			r.Route("/invitations", func(r chi.Router) {
+				r.Get("/", invHandler.List)
+				r.Post("/", invHandler.Create)
+				r.Get("/{id}", invHandler.GetByID)
+				r.Put("/{id}", invHandler.Update)
+				r.Delete("/{id}", invHandler.Delete)
+				r.Post("/{id}/guests", invHandler.AddGuest)
+			})
+
+			r.Route("/guests", func(r chi.Router) {
+				r.Get("/", guestHandler.List)
+				r.Get("/{id}", guestHandler.GetByID)
+				r.Put("/{id}", guestHandler.Update)
+				r.Delete("/{id}", guestHandler.Delete)
+			})
 		})
 
 		// Webhook (sem auth — validação via assinatura do provider)

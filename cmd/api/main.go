@@ -15,6 +15,9 @@ import (
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/config"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/database"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/web"
+	"github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/guest"
+	"github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/invitation"
+	"github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/rsvp"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/wedding"
 )
 
@@ -42,7 +45,13 @@ func main() {
 	}
 
 	weddingRepo := database.NewWeddingRepository(db)
+	invitationRepo := database.NewInvitationRepository(db)
+	guestRepo := database.NewGuestRepository(db)
+
 	weddingUC := wedding.NewUseCase(weddingRepo, cfg.JWTSecret, cfg.JWTExpirationHours)
+	rsvpUC := rsvp.NewUseCase(guestRepo, invitationRepo)
+	invitationUC := invitation.NewUseCase(invitationRepo, guestRepo)
+	guestUC := guest.NewUseCase(guestRepo, invitationRepo)
 
 	if cfg.SeedAdminEmail != "" && cfg.SeedAdminPassword != "" {
 		if err := seedWedding(weddingUC, cfg); err != nil {
@@ -52,10 +61,13 @@ func main() {
 	}
 
 	router := web.NewRouter(web.RouterDeps{
-		WeddingUC:   weddingUC,
-		WeddingRepo: weddingRepo,
-		JWTSecret:   cfg.JWTSecret,
-		CORSOrigins: cfg.CORSAllowedOrigins,
+		WeddingUC:    weddingUC,
+		RSVPUC:       rsvpUC,
+		InvitationUC: invitationUC,
+		GuestUC:      guestUC,
+		WeddingRepo:  weddingRepo,
+		JWTSecret:    cfg.JWTSecret,
+		CORSOrigins:  cfg.CORSAllowedOrigins,
 	})
 
 	srv := &http.Server{

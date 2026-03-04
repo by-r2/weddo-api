@@ -147,40 +147,49 @@ mr-wedding-api/
 ├── internal/
 │   ├── domain/
 │   │   ├── entity/
-│   │   │   ├── wedding.go             # Entidade Wedding
+│   │   │   ├── wedding.go             # Entidade Wedding (tenant)
+│   │   │   ├── invitation.go          # Entidade Invitation (convite)
+│   │   │   ├── guest.go               # Entidade Guest + GuestStatus enum
 │   │   │   ├── errors.go              # Erros de domínio
-│   │   │   ├── invitation.go          # (Fase 2)
-│   │   │   ├── guest.go               # (Fase 2)
 │   │   │   ├── gift.go                # (Fase 3)
 │   │   │   └── payment.go             # (Fase 3)
 │   │   └── repository/
 │   │       ├── wedding.go             # Interface WeddingRepository
-│   │       ├── invitation.go          # (Fase 2)
-│   │       ├── guest.go               # (Fase 2)
+│   │       ├── invitation.go          # Interface InvitationRepository
+│   │       ├── guest.go               # Interface GuestRepository
 │   │       ├── gift.go                # (Fase 3)
 │   │       └── payment.go             # (Fase 3)
 │   ├── usecase/
 │   │   ├── wedding/
 │   │   │   └── wedding.go             # Authenticate, Seed
-│   │   ├── rsvp/                      # (Fase 2)
-│   │   ├── guest/                     # (Fase 2)
-│   │   ├── invitation/                # (Fase 2)
+│   │   ├── rsvp/
+│   │   │   └── rsvp.go                # Confirm, LookupInvitation
+│   │   ├── invitation/
+│   │   │   └── invitation.go          # CRUD + AddGuest
+│   │   ├── guest/
+│   │   │   └── guest.go               # CRUD + Dashboard
 │   │   ├── gift/                      # (Fase 3)
 │   │   └── payment/                   # (Fase 3)
 │   ├── dto/
-│   │   ├── request.go                 # LoginRequest
-│   │   └── response.go                # LoginResponse, ErrorResponse, HealthResponse, etc.
+│   │   ├── request.go                 # Login, RSVP, Invitation, Guest requests
+│   │   └── response.go                # Todas as responses + PaginatedResponse
 │   └── infra/
 │       ├── config/
 │       │   └── config.go              # Struct Config + Load()
 │       ├── database/
 │       │   ├── sqlite.go              # Open() + RunMigrations()
-│       │   └── wedding_repository.go  # Implementação WeddingRepository
+│       │   ├── wedding_repository.go  # Implementação WeddingRepository
+│       │   ├── invitation_repository.go # Implementação InvitationRepository
+│       │   └── guest_repository.go    # Implementação GuestRepository
 │       ├── gateway/                   # (Fase 3 — Mercado Pago)
 │       └── web/
 │           ├── handler/
 │           │   ├── auth.go            # Login admin
 │           │   ├── health.go          # Health check
+│           │   ├── rsvp.go            # Confirm, LookupInvitation (público)
+│           │   ├── invitation.go      # CRUD invitations + AddGuest (admin)
+│           │   ├── guest.go           # CRUD guests (admin)
+│           │   ├── dashboard.go       # Estatísticas RSVP (admin)
 │           │   ├── response.go        # respondJSON, respondError
 │           │   └── validator.go       # decodeAndValidate
 │           ├── middleware/
@@ -191,7 +200,11 @@ mr-wedding-api/
 │           └── router.go             # Setup chi com rotas e middleware groups
 ├── migrations/
 │   ├── 001_create_weddings.up.sql
-│   └── 001_create_weddings.down.sql
+│   ├── 001_create_weddings.down.sql
+│   ├── 002_create_invitations.up.sql
+│   ├── 002_create_invitations.down.sql
+│   ├── 003_create_guests.up.sql
+│   └── 003_create_guests.down.sql
 ├── docs/
 ├── .cursor/rules/
 ├── .env.example

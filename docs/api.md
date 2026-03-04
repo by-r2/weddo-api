@@ -264,21 +264,28 @@ GET /api/v1/admin/dashboard
     "pending": 75,
     "declined": 5,
     "confirmation_rate": 61.5
-  },
-  "gifts": {
-    "total_gifts": 50,
-    "purchased": 18,
-    "available": 32,
-    "total_revenue": 6500.00,
-    "total_payments": 18
   }
 }
+```
+
+> Na Fase 3, o dashboard incluirá também estatísticas de presentes:
+>
+> ```json
+> {
+>   "gifts": {
+>     "total_gifts": 50,
+>     "purchased": 18,
+>     "available": 32,
+>     "total_revenue": 6500.00,
+>     "total_payments": 18
+>   }
+> }
 ```
 
 ### Convites (Invitations)
 
 ```
-GET    /api/v1/admin/invitations          # listar (?status=pending&search=silva)
+GET    /api/v1/admin/invitations          # listar (?page=1&per_page=20&search=silva)
 POST   /api/v1/admin/invitations          # criar
 GET    /api/v1/admin/invitations/{id}     # detalhar (inclui guests)
 PUT    /api/v1/admin/invitations/{id}     # atualizar
@@ -321,7 +328,7 @@ DELETE /api/v1/admin/invitations/{id}     # remover (cascade guests)
 ### Convidados (Guests)
 
 ```
-GET    /api/v1/admin/guests               # listar (?status=confirmed&search=joão)
+GET    /api/v1/admin/guests               # listar (?page=1&per_page=20&status=confirmed&search=joão)
 GET    /api/v1/admin/guests/{id}          # detalhar
 PUT    /api/v1/admin/guests/{id}          # atualizar
 DELETE /api/v1/admin/guests/{id}          # remover
