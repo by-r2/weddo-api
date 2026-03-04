@@ -1,0 +1,23 @@
+# Binário
+/bin/
+/tmp/
+
+# Banco de dados
+/data/
+*.db
+
+# Configuração local
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+vendor/

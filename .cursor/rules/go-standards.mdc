@@ -1,0 +1,82 @@
+---
+description: Padrões de código Go para o projeto
+globs: "**/*.go"
+alwaysApply: false
+---
+
+# Padrões Go
+
+## Nomenclatura
+
+- Siga as convenções da comunidade Go: `camelCase` para não-exportado, `PascalCase` para exportado
+- Interfaces com sufixo descritivo (ex: `GuestRepository`, não `IGuestRepository`)
+- Arquivos em `snake_case.go`
+- Pacotes curtos, uma palavra quando possível
+
+## Tratamento de Erros
+
+- Sempre retorne `error` como último valor
+- Use `fmt.Errorf("contexto: %w", err)` para wrap
+- Erros de domínio como tipos custom em `domain/entity/`
+
+```go
+// ❌
+func (uc *RSVPUseCase) Confirm(name string) (*entity.Guest, error) {
+    guest, err := uc.repo.FindByName(name)
+    if err != nil {
+        return nil, err // sem contexto
+    }
+}
+
+// ✅
+func (uc *RSVPUseCase) Confirm(name string) (*entity.Guest, error) {
+    guest, err := uc.repo.FindByName(name)
+    if err != nil {
+        return nil, fmt.Errorf("rsvp.Confirm: %w", err)
+    }
+}
+```
+
+## Handlers HTTP
+
+- Recebem request, validam, delegam para use case, retornam response
+- Nunca contêm regras de negócio
+- Usam `dto` para request/response (não expõem entidades diretamente)
+
+```go
+func (h *RSVPHandler) Confirm(w http.ResponseWriter, r *http.Request) {
+    var req dto.RSVPRequest
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        respondError(w, http.StatusBadRequest, "Requisição inválida")
+        return
+    }
+    // validar → chamar use case → responder
+}
+```
+
+## Use Cases
+
+- Recebem interfaces de repositório via construtor (injeção de dependência)
+- Um arquivo por contexto de negócio
+- Sempre recebem `weddingID` como parâmetro (multi-tenancy)
+
+```go
+type RSVPUseCase struct {
+    guestRepo      repository.GuestRepository
+    invitationRepo repository.InvitationRepository
+}
+
+func NewRSVPUseCase(gr repository.GuestRepository, ir repository.InvitationRepository) *RSVPUseCase {
+    return &RSVPUseCase{guestRepo: gr, invitationRepo: ir}
+}
+
+func (uc *RSVPUseCase) Confirm(ctx context.Context, weddingID, name string) (*entity.Guest, error) {
+    // weddingID garante isolamento entre tenants
+}
+```
+
+## Testes
+
+- Arquivo de teste ao lado do arquivo testado: `guest.go` → `guest_test.go`
+- Use table-driven tests
+- Mocks implementam as interfaces de `domain/repository/`

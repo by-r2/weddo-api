@@ -1,0 +1,51 @@
+---
+description: Convenções gerais do projeto mr-wedding-api
+alwaysApply: true
+---
+
+# Convenções do Projeto
+
+## Idioma
+
+- **Documentação, comentários de código e mensagens de commit**: português (pt-BR)
+- **Nomes de pastas, arquivos, variáveis, funções, tipos, pacotes e branches**: inglês
+- **Mensagens de erro da API retornadas ao usuário**: português (pt-BR)
+- **Logs internos**: inglês
+
+## Arquitetura
+
+Clean Architecture com 4 camadas. Dependências apontam para o centro:
+
+```
+infra → usecase → domain
+infra → dto
+```
+
+- `internal/domain/` não importa nenhum pacote interno
+- `internal/usecase/` importa apenas `domain/`
+- `internal/dto/` não importa nenhum pacote interno
+- `internal/infra/` importa `domain/`, `usecase/` e `dto/`
+
+## Multi-tenancy
+
+- Todas as tabelas de negócio possuem `wedding_id`
+- Repositórios sempre recebem `weddingID` como parâmetro
+- Endpoints públicos: tenant via slug na URL (`/api/v1/w/{slug}/...`)
+- Endpoints admin: tenant via JWT claims (`wedding_id`)
+- Nunca existe query sem filtro de tenant (exceto busca de wedding)
+
+## Estrutura de Arquivos
+
+```
+cmd/api/main.go                  # entrypoint
+internal/domain/entity/          # entidades (inclui Wedding)
+internal/domain/repository/      # interfaces de repositório
+internal/usecase/                # casos de uso (um subpacote por contexto)
+internal/dto/                    # request/response structs
+internal/infra/database/         # implementação dos repositórios
+internal/infra/gateway/          # clientes externos (Mercado Pago)
+internal/infra/web/handler/      # handlers HTTP
+internal/infra/web/middleware/   # middlewares (auth, tenant, logger)
+internal/infra/config/           # configuração
+migrations/                      # SQL migrations
+```

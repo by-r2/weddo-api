@@ -1,0 +1,36 @@
+---
+description: Convenções para migrações SQL do SQLite
+globs: "migrations/**/*.sql"
+alwaysApply: false
+---
+
+# Migrações SQL
+
+## Formato
+
+- Arquivos em `migrations/` com padrão `NNN_descricao.up.sql` e `NNN_descricao.down.sql`
+- Numeração sequencial com 3 dígitos: `001`, `002`, etc.
+- SQL puro, sem ORM
+
+## SQLite
+
+- IDs como `TEXT` (UUID v4), nunca `INTEGER AUTOINCREMENT`
+- Timestamps como `DATETIME` com valor padrão `CURRENT_TIMESTAMP`
+- Texto com busca case-insensitive: use `COLLATE NOCASE`
+- Sempre incluir `IF NOT EXISTS` / `IF EXISTS`
+- Foreign keys: ativar com `PRAGMA foreign_keys = ON`
+
+```sql
+-- ✅
+CREATE TABLE IF NOT EXISTS guests (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL COLLATE NOCASE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ❌
+CREATE TABLE guests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(100)
+);
+```
