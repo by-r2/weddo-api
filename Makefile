@@ -5,20 +5,20 @@ export
 
 BINARY=bin/api
 MAIN=cmd/api/main.go
-IMAGE=mr-wedding-api
+IMAGE=wedding-api
 VERSION?=latest
 
 build:
-	CGO_ENABLED=1 go build -o $(BINARY) $(MAIN)
+	go build -o $(BINARY) $(MAIN)
 
 run:
-	CGO_ENABLED=1 go run $(MAIN)
+	go run $(MAIN)
 
 test:
-	CGO_ENABLED=1 go test ./... -v
+	go test ./... -v
 
 clean:
-	rm -rf bin/ data/
+	rm -rf bin/
 
 setup:
 	go mod tidy
@@ -32,7 +32,7 @@ migrate-down:
 	go run $(MAIN) -migrate-down
 
 seed-dev:
-	CGO_ENABLED=1 go run $(MAIN) -seed-dev
+	go run $(MAIN) -seed-dev
 
 docker-build:
 	docker build -t $(IMAGE):$(VERSION) .
@@ -41,7 +41,6 @@ docker-run:
 	docker run -d --name $(IMAGE) \
 		--env-file .env \
 		-p 8080:8080 \
-		-v $(PWD)/data:/app/data \
 		$(IMAGE):$(VERSION)
 
 docker-stop:

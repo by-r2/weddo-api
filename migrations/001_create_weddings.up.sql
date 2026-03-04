@@ -7,9 +7,9 @@ CREATE TABLE IF NOT EXISTS weddings (
     partner2_name   TEXT NOT NULL,
     admin_email     TEXT NOT NULL,
     admin_pass_hash TEXT NOT NULL,
-    active          INTEGER NOT NULL DEFAULT 1,
-    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    active          BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_weddings_slug ON weddings(slug);

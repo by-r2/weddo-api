@@ -1,7 +1,5 @@
 FROM golang:1.25-bookworm AS builder
 
-RUN apt-get update && apt-get install -y gcc musl-dev && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
 COPY go.mod go.sum ./
@@ -9,7 +7,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-s -w" -o /api cmd/api/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /api cmd/api/main.go
 
 FROM debian:bookworm-slim
 
@@ -22,7 +20,7 @@ WORKDIR /app
 COPY --from=builder /api .
 COPY migrations/ ./migrations/
 
-RUN mkdir -p /app/data && chown -R appuser:appuser /app
+RUN chown -R appuser:appuser /app
 
 USER appuser
 

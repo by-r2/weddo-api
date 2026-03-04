@@ -20,7 +20,7 @@ func NewWeddingRepository(db *sql.DB) repository.WeddingRepository {
 func (r *weddingRepository) Create(ctx context.Context, w *entity.Wedding) error {
 	query := `
 		INSERT INTO weddings (id, slug, title, date, partner1_name, partner2_name, admin_email, admin_pass_hash, active, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
 
 	_, err := r.db.ExecContext(ctx, query,
 		w.ID, w.Slug, w.Title, w.Date, w.Partner1Name, w.Partner2Name,
@@ -47,7 +47,7 @@ func (r *weddingRepository) FindBySlug(ctx context.Context, slug string) (*entit
 func (r *weddingRepository) findByColumn(ctx context.Context, column, value string) (*entity.Wedding, error) {
 	query := fmt.Sprintf(`
 		SELECT id, slug, title, date, partner1_name, partner2_name, admin_email, admin_pass_hash, active, created_at, updated_at
-		FROM weddings WHERE %s = ?`, column)
+		FROM weddings WHERE %s = $1`, column)
 
 	var w entity.Wedding
 	var dateStr sql.NullString

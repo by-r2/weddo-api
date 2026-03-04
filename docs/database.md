@@ -18,47 +18,47 @@ Todas as tabelas de negócio possuem `wedding_id` como chave estrangeira para `w
 │ partner2_name    TEXT        │                                  │
 │ admin_email      TEXT        │                                  │
 │ admin_pass_hash  TEXT        │                                  │
-│ active           INTEGER     │                                  │
-│ created_at       DATETIME    │                                  │
-│ updated_at       DATETIME    │                                  │
+│ active           BOOLEAN     │                                  │
+│ created_at       TIMESTAMPTZ │                                  │
+│ updated_at       TIMESTAMPTZ │                                  │
 └──────────────────────────────┘                                  │
          │                                                        │
          │  wedding_id FK                                         │
          ▼                                                        │
-┌──────────────────────────┐       ┌──────────────────────────────┐
-│       invitations        │       │           guests             │
-├──────────────────────────┤       ├──────────────────────────────┤
-│ id          TEXT PK      │◄──┐   │ id             TEXT PK       │
-│ wedding_id  TEXT FK      │   │   │ invitation_id  TEXT FK       │
-│ code        TEXT         │   └───│ wedding_id     TEXT FK       │
-│ label       TEXT         │       │ name           TEXT          │
-│ max_guests  INTEGER      │       │ phone          TEXT          │
-│ notes       TEXT         │       │ email          TEXT          │
-│ created_at  DATETIME     │       │ status         TEXT          │
-│ updated_at  DATETIME     │       │ confirmed_at   DATETIME     │
-└──────────────────────────┘       │ created_at     DATETIME     │
-                                   │ updated_at     DATETIME     │
-         │  wedding_id FK          └──────────────────────────────┘
+┌──────────────────────────┐       ┌───────────────────────────────────┐
+│       invitations        │       │              guests               │
+├──────────────────────────┤       ├───────────────────────────────────┤
+│ id          TEXT PK      │◄──┐   │ id             TEXT PK            │
+│ wedding_id  TEXT FK      │   │   │ invitation_id  TEXT FK            │
+│ code        TEXT         │   └───│ wedding_id     TEXT FK            │
+│ label       TEXT         │       │ name           TEXT               │
+│ max_guests  INTEGER      │       │ phone          TEXT               │
+│ notes       TEXT         │       │ email          TEXT               │
+│ created_at  TIMESTAMPTZ  │       │ status         TEXT               │
+│ updated_at  TIMESTAMPTZ  │       │ confirmed_at   TIMESTAMPTZ       │
+└──────────────────────────┘       │ created_at     TIMESTAMPTZ       │
+                                   │ updated_at     TIMESTAMPTZ       │
+         │  wedding_id FK          └───────────────────────────────────┘
          ▼
-┌──────────────────────────────┐       ┌──────────────────────────────┐
-│           gifts              │       │          payments            │
-├──────────────────────────────┤       ├──────────────────────────────┤
-│ id            TEXT PK        │◄──┐   │ id              TEXT PK      │
-│ wedding_id    TEXT FK        │   │   │ gift_id         TEXT FK      │
-│ name          TEXT           │   └───│ wedding_id      TEXT FK      │
-│ description   TEXT           │       │ provider_id     TEXT         │
-│ price         REAL           │       │ amount          REAL         │
-│ image_url     TEXT           │       │ status          TEXT         │
-│ category      TEXT           │       │ payment_method  TEXT         │
-│ status        TEXT           │       │ payer_name      TEXT         │
-│ created_at    DATETIME       │       │ payer_email     TEXT         │
-│ updated_at    DATETIME       │       │ message         TEXT         │
-└──────────────────────────────┘       │ pix_qr_code     TEXT         │
-                                       │ pix_expiration  DATETIME     │
-                                       │ paid_at         DATETIME     │
-                                       │ created_at      DATETIME     │
-                                       │ updated_at      DATETIME     │
-                                       └──────────────────────────────┘
+┌───────────────────────────────────┐   ┌───────────────────────────────────┐
+│              gifts                │   │            payments               │
+├───────────────────────────────────┤   ├───────────────────────────────────┤
+│ id            TEXT PK             │◄──│ id              TEXT PK           │
+│ wedding_id    TEXT FK             │   │ gift_id         TEXT FK           │
+│ name          TEXT                │   │ wedding_id      TEXT FK           │
+│ description   TEXT                │   │ provider_id     TEXT              │
+│ price         DOUBLE PRECISION    │   │ amount          DOUBLE PRECISION │
+│ image_url     TEXT                │   │ status          TEXT              │
+│ category      TEXT                │   │ payment_method  TEXT              │
+│ status        TEXT                │   │ payer_name      TEXT              │
+│ created_at    TIMESTAMPTZ         │   │ payer_email     TEXT              │
+│ updated_at    TIMESTAMPTZ         │   │ message         TEXT              │
+└───────────────────────────────────┘   │ pix_qr_code     TEXT              │
+                                        │ pix_expiration  TIMESTAMPTZ       │
+                                        │ paid_at         TIMESTAMPTZ       │
+                                        │ created_at      TIMESTAMPTZ       │
+                                        │ updated_at      TIMESTAMPTZ       │
+                                        └───────────────────────────────────┘
 ```
 
 ## Tabelas
@@ -77,9 +77,9 @@ Tenant principal. Cada casamento é uma instância isolada do sistema.
 | partner2_name | TEXT | NOT NULL | Nome do(a) segundo(a) noivo(a) |
 | admin_email | TEXT | NOT NULL, UNIQUE | Email para login admin |
 | admin_pass_hash | TEXT | NOT NULL | Hash bcrypt da senha admin |
-| active | INTEGER | NOT NULL, DEFAULT 1 | 1 = ativo, 0 = desativado |
-| created_at | DATETIME | NOT NULL | Timestamp de criação |
-| updated_at | DATETIME | NOT NULL | Timestamp da última atualização |
+| active | BOOLEAN | NOT NULL, DEFAULT TRUE | Ativo ou desativado |
+| created_at | TIMESTAMPTZ | NOT NULL | Timestamp de criação |
+| updated_at | TIMESTAMPTZ | NOT NULL | Timestamp da última atualização |
 
 ### invitations
 
@@ -93,8 +93,8 @@ Convite físico enviado a um grupo (família, casal, pessoa individual).
 | label | TEXT | NOT NULL | Nome do grupo (ex: "Família Silva") |
 | max_guests | INTEGER | NOT NULL, DEFAULT 1 | Máximo de convidados neste convite |
 | notes | TEXT | | Observações internas |
-| created_at | DATETIME | NOT NULL | Timestamp de criação |
-| updated_at | DATETIME | NOT NULL | Timestamp da última atualização |
+| created_at | TIMESTAMPTZ | NOT NULL | Timestamp de criação |
+| updated_at | TIMESTAMPTZ | NOT NULL | Timestamp da última atualização |
 
 Constraint: `UNIQUE(wedding_id, code)` — código único por casamento.
 
@@ -111,9 +111,9 @@ Pessoa individual vinculada a um convite.
 | phone | TEXT | | Telefone (opcional) |
 | email | TEXT | | Email (opcional) |
 | status | TEXT | NOT NULL, DEFAULT 'pending' | `pending`, `confirmed` ou `declined` |
-| confirmed_at | DATETIME | | Timestamp da confirmação |
-| created_at | DATETIME | NOT NULL | Timestamp de criação |
-| updated_at | DATETIME | NOT NULL | Timestamp da última atualização |
+| confirmed_at | TIMESTAMPTZ | | Timestamp da confirmação |
+| created_at | TIMESTAMPTZ | NOT NULL | Timestamp de criação |
+| updated_at | TIMESTAMPTZ | NOT NULL | Timestamp da última atualização |
 
 ### gifts
 
@@ -125,12 +125,12 @@ Presente virtual no catálogo. O valor vai para a conta dos noivos.
 | wedding_id | TEXT | FK → weddings(id), NOT NULL | Casamento ao qual pertence |
 | name | TEXT | NOT NULL | Nome do presente |
 | description | TEXT | | Descrição detalhada |
-| price | REAL | NOT NULL | Valor em reais |
+| price | DOUBLE PRECISION | NOT NULL | Valor em reais |
 | image_url | TEXT | | URL da imagem |
 | category | TEXT | NOT NULL | Categoria (ex: "Cozinha", "Lua de Mel") |
 | status | TEXT | NOT NULL, DEFAULT 'available' | `available` ou `purchased` |
-| created_at | DATETIME | NOT NULL | Timestamp de criação |
-| updated_at | DATETIME | NOT NULL | Timestamp da última atualização |
+| created_at | TIMESTAMPTZ | NOT NULL | Timestamp de criação |
+| updated_at | TIMESTAMPTZ | NOT NULL | Timestamp da última atualização |
 
 ### payments
 
@@ -142,17 +142,17 @@ Transação de pagamento associada a um presente.
 | gift_id | TEXT | FK → gifts(id), NOT NULL | Presente sendo comprado |
 | wedding_id | TEXT | FK → weddings(id), NOT NULL | Casamento (desnormalizado) |
 | provider_id | TEXT | | ID da transação no provedor (InfinitePay slug ou Mercado Pago ID) |
-| amount | REAL | NOT NULL | Valor cobrado em reais |
+| amount | DOUBLE PRECISION | NOT NULL | Valor cobrado em reais |
 | status | TEXT | NOT NULL, DEFAULT 'pending' | `pending`, `approved`, `rejected`, `expired` |
 | payment_method | TEXT | NOT NULL | `pix` ou `credit_card` |
 | payer_name | TEXT | NOT NULL | Nome de quem presenteia |
 | payer_email | TEXT | | Email do pagador |
 | message | TEXT | | Mensagem para os noivos |
 | pix_qr_code | TEXT | | Código copia-e-cola do PIX |
-| pix_expiration | DATETIME | | Quando o QR code expira |
-| paid_at | DATETIME | | Timestamp do pagamento confirmado |
-| created_at | DATETIME | NOT NULL | Timestamp de criação |
-| updated_at | DATETIME | NOT NULL | Timestamp da última atualização |
+| pix_expiration | TIMESTAMPTZ | | Quando o QR code expira |
+| paid_at | TIMESTAMPTZ | | Timestamp do pagamento confirmado |
+| created_at | TIMESTAMPTZ | NOT NULL | Timestamp de criação |
+| updated_at | TIMESTAMPTZ | NOT NULL | Timestamp da última atualização |
 
 ## Enums de Status
 
@@ -215,7 +215,7 @@ CREATE UNIQUE INDEX idx_invitations_wedding_code ON invitations(wedding_id, code
 CREATE INDEX idx_guests_invitation_id ON guests(invitation_id);
 CREATE INDEX idx_guests_wedding_id ON guests(wedding_id);
 CREATE INDEX idx_guests_wedding_status ON guests(wedding_id, status);
-CREATE INDEX idx_guests_wedding_name ON guests(wedding_id, name COLLATE NOCASE);
+CREATE INDEX idx_guests_wedding_name ON guests(wedding_id, LOWER(name));
 
 CREATE INDEX idx_gifts_wedding_id ON gifts(wedding_id);
 CREATE INDEX idx_gifts_category ON gifts(wedding_id, category);
@@ -229,12 +229,12 @@ CREATE INDEX idx_payments_provider_id ON payments(provider_id);
 
 Índices compostos com `wedding_id` como prefixo garantem que queries scoped por tenant usem índices eficientemente.
 
-## Arquivo do Banco
+## Conexão
 
-SQLite em arquivo único. Padrão: `./data/wedding.db`.
+PostgreSQL via connection string. Compatível com qualquer provedor (Supabase, Neon, local).
 
 ```
-DATABASE_PATH=./data/wedding.db
+DATABASE_URL=postgresql://user:pass@host:5432/wedding?sslmode=require
 ```
 
 ### Nota sobre desnormalização de wedding_id

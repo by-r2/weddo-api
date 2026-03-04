@@ -6,7 +6,7 @@ Setup do projeto, estrutura base e infraestrutura mínima.
 
 - [x] Bootstrap Go (go mod, main.go, Makefile)
 - [x] Configuração via env (envconfig + godotenv)
-- [x] Conexão SQLite + migrações automáticas no boot
+- [x] Conexão PostgreSQL + migrações automáticas no boot
 - [x] Entidade Wedding + migração + repositório
 - [x] Router chi com middlewares base (CORS, logging, recovery)
 - [x] Middleware de autenticação JWT (extrai wedding_id dos claims)
@@ -25,7 +25,7 @@ Feature principal. Sem isso, os convidados não conseguem confirmar presença.
 
 - [x] Entidades Invitation + Guest
 - [x] Migrações SQL (002_create_invitations, 003_create_guests)
-- [x] Repositórios SQLite (scoped por wedding_id)
+- [x] Repositórios PostgreSQL (scoped por wedding_id)
 - [x] Use case RSVP (buscar por nome no tenant, confirmar, idempotência)
 - [x] Use case CRUD de convites (admin, scoped por wedding_id)
 - [x] Use case CRUD de convidados (admin, scoped)
@@ -40,7 +40,7 @@ Substituir o Casar.com por solução própria com PIX e cartão.
 
 - [x] Entidades Gift + Payment
 - [x] Migrações SQL (004_create_gifts, 005_create_payments)
-- [x] Repositórios SQLite (scoped por wedding_id)
+- [x] Repositórios PostgreSQL (scoped por wedding_id)
 - [x] Gateway de pagamento com Strategy Pattern (interface `PaymentGateway`)
 - [x] Implementação InfinitePay (checkout redirect, PIX 0%)
 - [x] Implementação Mercado Pago (checkout transparente, SDK Go v1.8.0)

@@ -12,7 +12,7 @@ Cada casamento é um tenant isolado. O primeiro tenant é o casamento **Manoela 
 | Arquitetura | Clean Architecture, multi-tenant | — |
 | Router HTTP | [chi](https://github.com/go-chi/chi) | v5.2.5 |
 | CORS | [go-chi/cors](https://github.com/go-chi/cors) | v1.2.2 |
-| Banco de dados | SQLite (via [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)) | v1.14.34 |
+| Banco de dados | PostgreSQL (via [pgx](https://github.com/jackc/pgx)) — Supabase, Neon, local | v5.5.4 |
 | Migrações | [golang-migrate](https://github.com/golang-migrate/migrate) | v4.19.1 |
 | Configuração | [envconfig](https://github.com/kelseyhightower/envconfig) + [godotenv](https://github.com/joho/godotenv) | v1.4.0 / v1.5.1 |
 | Autenticação admin | JWT ([golang-jwt](https://github.com/golang-jwt/jwt)) | v5.3.1 |
@@ -50,7 +50,7 @@ O servidor sobe em `http://localhost:8080`. O arquivo `.env` é carregado automa
 
 ```bash
 make docker-build       # build da imagem
-make docker-run         # sobe container com .env e volume para dados
+make docker-run         # sobe container com .env
 make docker-stop        # para e remove o container
 ```
 
@@ -67,7 +67,7 @@ make docker-stop        # para e remove o container
 │   ├── dto/              # Objetos de transferência (request/response)
 │   └── infra/
 │       ├── config/       # Leitura de env vars
-│       ├── database/     # Conexão SQLite, migrações, repositórios
+│       ├── database/     # Conexão PostgreSQL, migrações, repositórios
 │       ├── gateway/      # InfinitePay + Mercado Pago (PIX + cartão)
 │       ├── seed/         # Dados fictícios para desenvolvimento
 │       └── web/

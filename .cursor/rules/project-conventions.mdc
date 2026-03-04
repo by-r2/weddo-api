@@ -42,8 +42,8 @@ internal/domain/entity/          # entidades + erros de domínio
 internal/domain/repository/      # interfaces de repositório
 internal/usecase/                # casos de uso (um subpacote por contexto)
 internal/dto/                    # request/response structs
-internal/infra/database/         # conexão SQLite + implementação dos repositórios
-internal/infra/gateway/          # clientes externos (Mercado Pago)
+internal/infra/database/         # conexão PostgreSQL + implementação dos repositórios
+internal/infra/gateway/          # clientes externos (InfinitePay, Mercado Pago)
 internal/infra/web/handler/      # handlers HTTP + helpers (response, validator)
 internal/infra/web/middleware/   # auth, tenant, logger, recovery
 internal/infra/config/           # configuração via env

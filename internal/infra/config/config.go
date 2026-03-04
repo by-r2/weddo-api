@@ -8,7 +8,7 @@ import (
 
 type Config struct {
 	ServerPort int    `envconfig:"SERVER_PORT" default:"8080"`
-	DatabasePath string `envconfig:"DATABASE_PATH" default:"./data/wedding.db"`
+	DatabaseURL string `envconfig:"DATABASE_URL" required:"true"`
 
 	JWTSecret          string `envconfig:"JWT_SECRET" required:"true"`
 	JWTExpirationHours int    `envconfig:"JWT_EXPIRATION_HOURS" default:"24"`

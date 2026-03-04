@@ -4,22 +4,15 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
-	"os"
-	"path/filepath"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/sqlite3"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func Open(dbPath string) (*sql.DB, error) {
-	dir := filepath.Dir(dbPath)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return nil, fmt.Errorf("database.Open: criar diretório: %w", err)
-	}
-
-	db, err := sql.Open("sqlite3", dbPath+"?_foreign_keys=on&_journal_mode=WAL")
+func Open(databaseURL string) (*sql.DB, error) {
+	db, err := sql.Open("pgx", databaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("database.Open: %w", err)
 	}
@@ -28,21 +21,22 @@ func Open(dbPath string) (*sql.DB, error) {
 		return nil, fmt.Errorf("database.Open: ping: %w", err)
 	}
 
-	db.SetMaxOpenConns(1) // SQLite não suporta escrita concorrente
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(5)
 
-	slog.Info("database connected", "path", dbPath)
+	slog.Info("database connected", "driver", "postgres")
 	return db, nil
 }
 
 func RunMigrations(db *sql.DB, migrationsPath string) error {
-	driver, err := sqlite3.WithInstance(db, &sqlite3.Config{})
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
 		return fmt.Errorf("database.RunMigrations: driver: %w", err)
 	}
 
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://"+migrationsPath,
-		"sqlite3",
+		"postgres",
 		driver,
 	)
 	if err != nil {

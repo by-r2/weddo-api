@@ -7,7 +7,7 @@ O projeto segue Clean Architecture com dependências apontando para o centro (do
 ```
 ┌─────────────────────────────────────────┐
 │  infra/web (handlers, middlewares)      │
-│  infra/database (repositórios SQLite)   │
+│  infra/database (repositórios Postgres)  │
 │  infra/gateway (InfinitePay, MP)        │
 │  infra/config                           │
 │  ┌───────────────────────────────────┐  │
@@ -37,7 +37,7 @@ O projeto segue Clean Architecture com dependências apontando para o centro (do
 | Domain | `internal/domain/gateway` | Interface do gateway de pagamento (contrato) |
 | Use Case | `internal/usecase/*` | Orquestração de regras de negócio por contexto |
 | DTO | `internal/dto` | Structs de request/response para a camada HTTP |
-| Infra | `internal/infra/database` | Conexão SQLite, migrações e implementação dos repositórios |
+| Infra | `internal/infra/database` | Conexão PostgreSQL, migrações e implementação dos repositórios |
 | Infra | `internal/infra/gateway` | Implementações do gateway de pagamento (InfinitePay, Mercado Pago) |
 | Infra | `internal/infra/web/handler` | Handlers HTTP + helpers (response JSON, validação) |
 | Infra | `internal/infra/web/middleware` | Auth JWT, TenantResolver, Logger, Recovery |
@@ -48,7 +48,7 @@ O projeto segue Clean Architecture com dependências apontando para o centro (do
 
 ### Estratégia: shared schema com discriminador
 
-Banco único, todas as tabelas possuem `wedding_id`. Simples, eficiente, e suficiente para a escala esperada. Se necessário no futuro, migrar para PostgreSQL com schema-per-tenant ou database-per-tenant.
+Banco único PostgreSQL, todas as tabelas possuem `wedding_id`. Simples, eficiente, e suficiente para a escala esperada. Se necessário no futuro, migrar para schema-per-tenant ou database-per-tenant.
 
 ### Resolução do tenant
 
@@ -102,9 +102,9 @@ Desempenho, simplicidade, tipagem estática e excelente stdlib para HTTP.
 
 Compatível com `net/http`, middleware chain, agrupamento de rotas, parâmetros de URL. Leve e idiomático.
 
-### SQLite
+### PostgreSQL (via pgx)
 
-Banco embutido, zero configuração. Ideal para o escopo inicial. Multi-tenancy via coluna `wedding_id` em todas as tabelas. WAL mode habilitado, foreign keys ativadas na connection string.
+Banco relacional robusto, compatível com provedores gerenciados gratuitos (Supabase, Neon). Multi-tenancy via coluna `wedding_id` em todas as tabelas. Driver `pgx` — pure Go, sem dependência de CGO. Permite deploy em plataformas serverless (Cloud Run, Fly.io) sem necessidade de disco persistente.
 
 ### golang-migrate
 
@@ -193,7 +193,7 @@ mr-wedding-api/
 │       ├── config/
 │       │   └── config.go              # Struct Config + Load()
 │       ├── database/
-│       │   ├── sqlite.go              # Open() + RunMigrations()
+│       │   ├── postgres.go             # Open() + RunMigrations()
 │       │   ├── wedding_repository.go  # Implementação WeddingRepository
 │       │   ├── invitation_repository.go # Implementação InvitationRepository
 │       │   ├── guest_repository.go    # Implementação GuestRepository

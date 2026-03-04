@@ -2,10 +2,6 @@
 /bin/
 /tmp/
 
-# Banco de dados
-/data/
-*.db
-
 # Configuração local
 .env
 

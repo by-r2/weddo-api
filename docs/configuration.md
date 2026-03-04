@@ -16,9 +16,23 @@ cp .env.example .env
 
 | Variável | Descrição | Default | Obrigatório |
 |----------|-----------|---------|-------------|
-| `DATABASE_PATH` | Caminho do arquivo SQLite | `./data/wedding.db` | Não |
+| `DATABASE_URL` | Connection string PostgreSQL | — | **Sim** |
 
-O diretório é criado automaticamente. Em produção, use um caminho persistente fora do container.
+Aceita qualquer provedor PostgreSQL (Supabase, Neon, local). Formato:
+
+```
+DATABASE_URL=postgresql://user:pass@host:5432/dbname?sslmode=require
+```
+
+Para desenvolvimento local com Docker:
+
+```bash
+docker run -d --name wedding-pg -e POSTGRES_DB=wedding -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:17
+```
+
+```
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/wedding?sslmode=disable
+```
 
 ## JWT (Autenticação Admin)
 
@@ -205,7 +219,7 @@ O CI do GitHub Actions usa essa mesma chave via secret do repositório (não lê
 
 ```bash
 SERVER_PORT=8080
-DATABASE_PATH=/var/data/wedding.db
+DATABASE_URL=postgresql://user:pass@db.supabase.co:5432/postgres?sslmode=require
 
 JWT_SECRET=<valor gerado com openssl rand -base64 32>
 JWT_EXPIRATION_HOURS=12
@@ -231,7 +245,7 @@ LOG_FORMAT=json
 
 ```bash
 SERVER_PORT=8080
-DATABASE_PATH=/var/data/wedding.db
+DATABASE_URL=postgresql://user:pass@db.supabase.co:5432/postgres?sslmode=require
 
 JWT_SECRET=<valor gerado com openssl rand -base64 32>
 JWT_EXPIRATION_HOURS=12

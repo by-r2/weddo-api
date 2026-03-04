@@ -1,5 +1,5 @@
 ---
-description: Convenções para migrações SQL do SQLite
+description: Convenções para migrações SQL do PostgreSQL
 globs: "migrations/**/*.sql"
 alwaysApply: false
 ---
@@ -12,25 +12,26 @@ alwaysApply: false
 - Numeração sequencial com 3 dígitos: `001`, `002`, etc.
 - SQL puro, sem ORM
 
-## SQLite
+## PostgreSQL
 
-- IDs como `TEXT` (UUID v4), nunca `INTEGER AUTOINCREMENT`
-- Timestamps como `DATETIME` com valor padrão `CURRENT_TIMESTAMP`
-- Texto com busca case-insensitive: use `COLLATE NOCASE`
+- IDs como `TEXT` (UUID v4), nunca `SERIAL`
+- Timestamps como `TIMESTAMPTZ` com valor padrão `NOW()`
+- Busca case-insensitive: use `ILIKE` ou `LOWER(coluna)`
 - Sempre incluir `IF NOT EXISTS` / `IF EXISTS`
-- Foreign keys: ativar com `PRAGMA foreign_keys = ON`
+- Valores monetários como `DOUBLE PRECISION`
+- Booleanos como `BOOLEAN` com `TRUE`/`FALSE`
 
 ```sql
 -- ✅
 CREATE TABLE IF NOT EXISTS guests (
     id TEXT PRIMARY KEY,
-    name TEXT NOT NULL COLLATE NOCASE,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    name TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ❌
 CREATE TABLE guests (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     name VARCHAR(100)
 );
 ```

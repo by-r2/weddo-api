@@ -20,7 +20,7 @@ func NewInvitationRepository(db *sql.DB) repository.InvitationRepository {
 func (r *invitationRepository) Create(ctx context.Context, inv *entity.Invitation) error {
 	query := `
 		INSERT INTO invitations (id, wedding_id, code, label, max_guests, notes, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
 	_, err := r.db.ExecContext(ctx, query,
 		inv.ID, inv.WeddingID, inv.Code, inv.Label, inv.MaxGuests, inv.Notes,
@@ -35,7 +35,7 @@ func (r *invitationRepository) Create(ctx context.Context, inv *entity.Invitatio
 func (r *invitationRepository) FindByID(ctx context.Context, weddingID, id string) (*entity.Invitation, error) {
 	query := `
 		SELECT id, wedding_id, code, label, max_guests, notes, created_at, updated_at
-		FROM invitations WHERE wedding_id = ? AND id = ?`
+		FROM invitations WHERE wedding_id = $1 AND id = $2`
 
 	var inv entity.Invitation
 	err := r.db.QueryRowContext(ctx, query, weddingID, id).Scan(
@@ -54,7 +54,7 @@ func (r *invitationRepository) FindByID(ctx context.Context, weddingID, id strin
 func (r *invitationRepository) FindByCode(ctx context.Context, weddingID, code string) (*entity.Invitation, error) {
 	query := `
 		SELECT id, wedding_id, code, label, max_guests, notes, created_at, updated_at
-		FROM invitations WHERE wedding_id = ? AND code = ?`
+		FROM invitations WHERE wedding_id = $1 AND code = $2`
 
 	var inv entity.Invitation
 	err := r.db.QueryRowContext(ctx, query, weddingID, code).Scan(
@@ -71,19 +71,20 @@ func (r *invitationRepository) FindByCode(ctx context.Context, weddingID, code s
 }
 
 func (r *invitationRepository) List(ctx context.Context, weddingID string, page, perPage int, search string) ([]entity.Invitation, int, error) {
-	countQuery := `SELECT COUNT(*) FROM invitations WHERE wedding_id = ?`
+	countQuery := `SELECT COUNT(*) FROM invitations WHERE wedding_id = $1`
 	listQuery := `
 		SELECT id, wedding_id, code, label, max_guests, notes, created_at, updated_at
-		FROM invitations WHERE wedding_id = ?`
+		FROM invitations WHERE wedding_id = $1`
 
 	args := []any{weddingID}
+	paramIdx := 2
 
 	if search != "" {
-		filter := ` AND (label LIKE ? OR code LIKE ?)`
-		countQuery += filter
-		listQuery += filter
-		s := "%" + search + "%"
-		args = append(args, s, s)
+		f := fmt.Sprintf(` AND (label ILIKE $%d OR code ILIKE $%d)`, paramIdx, paramIdx)
+		countQuery += f
+		listQuery += f
+		args = append(args, "%"+search+"%")
+		paramIdx++
 	}
 
 	var total int
@@ -91,7 +92,7 @@ func (r *invitationRepository) List(ctx context.Context, weddingID string, page,
 		return nil, 0, fmt.Errorf("invitationRepository.List: count: %w", err)
 	}
 
-	listQuery += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`
+	listQuery += fmt.Sprintf(` ORDER BY created_at DESC LIMIT $%d OFFSET $%d`, paramIdx, paramIdx+1)
 	offset := (page - 1) * perPage
 	listArgs := append(args, perPage, offset)
 
@@ -114,8 +115,8 @@ func (r *invitationRepository) List(ctx context.Context, weddingID string, page,
 
 func (r *invitationRepository) Update(ctx context.Context, inv *entity.Invitation) error {
 	query := `
-		UPDATE invitations SET code = ?, label = ?, max_guests = ?, notes = ?, updated_at = ?
-		WHERE wedding_id = ? AND id = ?`
+		UPDATE invitations SET code = $1, label = $2, max_guests = $3, notes = $4, updated_at = $5
+		WHERE wedding_id = $6 AND id = $7`
 
 	res, err := r.db.ExecContext(ctx, query,
 		inv.Code, inv.Label, inv.MaxGuests, inv.Notes, inv.UpdatedAt,
@@ -131,7 +132,7 @@ func (r *invitationRepository) Update(ctx context.Context, inv *entity.Invitatio
 }
 
 func (r *invitationRepository) Delete(ctx context.Context, weddingID, id string) error {
-	res, err := r.db.ExecContext(ctx, `DELETE FROM invitations WHERE wedding_id = ? AND id = ?`, weddingID, id)
+	res, err := r.db.ExecContext(ctx, `DELETE FROM invitations WHERE wedding_id = $1 AND id = $2`, weddingID, id)
 	if err != nil {
 		return fmt.Errorf("invitationRepository.Delete: %w", err)
 	}
@@ -143,7 +144,7 @@ func (r *invitationRepository) Delete(ctx context.Context, weddingID, id string)
 
 func (r *invitationRepository) CountByWedding(ctx context.Context, weddingID string) (int, error) {
 	var count int
-	err := r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM invitations WHERE wedding_id = ?`, weddingID).Scan(&count)
+	err := r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM invitations WHERE wedding_id = $1`, weddingID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("invitationRepository.CountByWedding: %w", err)
 	}

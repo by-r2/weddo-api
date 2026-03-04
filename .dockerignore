@@ -1,12 +1,10 @@
 bin/
-data/
 tmp/
 .env
 .git/
 .gitignore
 .cursor/
 .DS_Store
-*.db
 *.md
 !README.md
 docs/

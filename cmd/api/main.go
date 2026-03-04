@@ -49,7 +49,7 @@ func main() {
 
 	setupLogger(cfg.LogLevel, cfg.LogFormat)
 
-	db, err := database.Open(cfg.DatabasePath)
+	db, err := database.Open(cfg.DatabaseURL)
 	if err != nil {
 		slog.Error("failed to open database", "error", err)
 		os.Exit(1)
