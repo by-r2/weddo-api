@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/domain/entity"
+	gw "github.com/rafaeljurkfitz/mr-wedding-api/internal/domain/gateway"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/domain/repository"
-	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/gateway"
 )
 
 var ErrGiftUnavailable = errors.New("presente não está disponível")
@@ -18,11 +18,16 @@ var ErrGiftUnavailable = errors.New("presente não está disponível")
 type UseCase struct {
 	paymentRepo repository.PaymentRepository
 	giftRepo    repository.GiftRepository
-	mpGateway   *gateway.MercadoPagoGateway
+	gateway     gw.PaymentGateway
 }
 
-func NewUseCase(pr repository.PaymentRepository, gr repository.GiftRepository, mp *gateway.MercadoPagoGateway) *UseCase {
-	return &UseCase{paymentRepo: pr, giftRepo: gr, mpGateway: mp}
+func NewUseCase(pr repository.PaymentRepository, gr repository.GiftRepository, gateway gw.PaymentGateway) *UseCase {
+	return &UseCase{paymentRepo: pr, giftRepo: gr, gateway: gateway}
+}
+
+// ProviderName retorna o nome do provedor de pagamento ativo.
+func (uc *UseCase) ProviderName() string {
+	return uc.gateway.Name()
 }
 
 type PurchaseInput struct {
@@ -35,12 +40,14 @@ type PurchaseInput struct {
 	CardToken       string
 	PaymentMethodID string
 	Installments    int
+	RedirectURL     string
 }
 
 type PurchaseResult struct {
 	Payment      *entity.Payment
 	QRCode       string
 	QRCodeBase64 string
+	CheckoutURL  string
 }
 
 func (uc *UseCase) Purchase(ctx context.Context, input PurchaseInput) (*PurchaseResult, error) {
@@ -68,38 +75,28 @@ func (uc *UseCase) Purchase(ctx context.Context, input PurchaseInput) (*Purchase
 		UpdatedAt:     now,
 	}
 
-	description := fmt.Sprintf("Presente: %s", gift.Name)
-	externalRef := p.ID
-
-	var mpResult *gateway.PaymentResult
-
-	if input.PaymentMethod == string(entity.PaymentMethodPix) {
-		mpResult, err = uc.mpGateway.CreatePixPayment(ctx, gateway.CreatePixInput{
-			Amount:            gift.Price,
-			Description:       description,
-			PayerEmail:        input.PayerEmail,
-			ExternalReference: externalRef,
-		})
-	} else {
-		mpResult, err = uc.mpGateway.CreateCardPayment(ctx, gateway.CreateCardInput{
-			Amount:            gift.Price,
-			Description:       description,
-			PayerEmail:        input.PayerEmail,
-			CardToken:         input.CardToken,
-			PaymentMethodID:   input.PaymentMethodID,
-			Installments:      input.Installments,
-			ExternalReference: externalRef,
-		})
+	gwInput := gw.CreatePaymentInput{
+		Amount:            gift.Price,
+		Description:       fmt.Sprintf("Presente: %s", gift.Name),
+		PayerName:         input.PayerName,
+		PayerEmail:        input.PayerEmail,
+		PaymentMethod:     input.PaymentMethod,
+		ExternalReference: p.ID,
+		CardToken:         input.CardToken,
+		PaymentMethodID:   input.PaymentMethodID,
+		Installments:      input.Installments,
+		RedirectURL:       input.RedirectURL,
 	}
 
+	gwResult, err := uc.gateway.CreatePayment(ctx, gwInput)
 	if err != nil {
 		return nil, fmt.Errorf("payment.Purchase: gateway: %w", err)
 	}
 
-	p.ProviderID = mpResult.ProviderID
-	p.Status = mapProviderStatus(mpResult.Status)
-	p.PixQRCode = mpResult.QRCode
-	p.PixExpiration = mpResult.ExpiresAt
+	p.ProviderID = gwResult.ProviderID
+	p.Status = mapProviderStatus(gwResult.Status)
+	p.PixQRCode = gwResult.QRCode
+	p.PixExpiration = gwResult.ExpiresAt
 
 	if p.Status == entity.PaymentStatusApproved {
 		p.PaidAt = &now
@@ -116,8 +113,9 @@ func (uc *UseCase) Purchase(ctx context.Context, input PurchaseInput) (*Purchase
 
 	return &PurchaseResult{
 		Payment:      p,
-		QRCode:       mpResult.QRCode,
-		QRCodeBase64: mpResult.QRCodeBase64,
+		QRCode:       gwResult.QRCode,
+		QRCodeBase64: gwResult.QRCodeBase64,
+		CheckoutURL:  gwResult.CheckoutURL,
 	}, nil
 }
 
@@ -135,10 +133,10 @@ func (uc *UseCase) GetStatus(ctx context.Context, weddingID, paymentID string) (
 	return p, gift.Name, nil
 }
 
-// HandleWebhook processa notificação do Mercado Pago.
-// Recebe o provider ID, consulta o status atual no MP e atualiza localmente.
+// HandleWebhook processa notificação do provedor de pagamento.
+// Recebe o provider ID, consulta o status atual no provedor e atualiza localmente.
 func (uc *UseCase) HandleWebhook(ctx context.Context, providerID string) error {
-	mpResult, err := uc.mpGateway.GetPayment(ctx, providerID)
+	gwResult, err := uc.gateway.GetPaymentStatus(ctx, providerID)
 	if err != nil {
 		return fmt.Errorf("payment.HandleWebhook: get from provider: %w", err)
 	}
@@ -148,7 +146,7 @@ func (uc *UseCase) HandleWebhook(ctx context.Context, providerID string) error {
 		return fmt.Errorf("payment.HandleWebhook: find payment: %w", err)
 	}
 
-	newStatus := mapProviderStatus(mpResult.Status)
+	newStatus := mapProviderStatus(gwResult.Status)
 	if p.Status == newStatus {
 		return nil
 	}
@@ -186,6 +184,53 @@ func (uc *UseCase) HandleWebhook(ctx context.Context, providerID string) error {
 	}
 
 	slog.Info("payment.HandleWebhook: updated", "provider_id", providerID, "status", newStatus)
+	return nil
+}
+
+// HandleInfinitePayWebhook processa a notificação direta da InfinitePay.
+// A InfinitePay envia order_nsu (nosso payment ID) diretamente no payload.
+func (uc *UseCase) HandleInfinitePayWebhook(ctx context.Context, orderNSU, invoiceSlug string, paid bool) error {
+	p, err := uc.paymentRepo.FindByID(ctx, "", orderNSU)
+	if err != nil {
+		p, err = uc.paymentRepo.FindByProviderID(ctx, invoiceSlug)
+		if err != nil {
+			return fmt.Errorf("payment.HandleInfinitePayWebhook: find payment: %w", err)
+		}
+	}
+
+	var newStatus entity.PaymentStatus
+	if paid {
+		newStatus = entity.PaymentStatusApproved
+	} else {
+		newStatus = entity.PaymentStatusPending
+	}
+
+	if p.Status == newStatus {
+		return nil
+	}
+
+	now := time.Now()
+	p.Status = newStatus
+	p.UpdatedAt = now
+
+	if newStatus == entity.PaymentStatusApproved && p.PaidAt == nil {
+		p.PaidAt = &now
+
+		gift, err := uc.giftRepo.FindByID(ctx, p.WeddingID, p.GiftID)
+		if err == nil && gift.Status == entity.GiftStatusAvailable {
+			gift.Status = entity.GiftStatusPurchased
+			gift.UpdatedAt = now
+			if err := uc.giftRepo.Update(ctx, gift); err != nil {
+				slog.Error("payment.HandleIPWebhook: failed to mark gift", "gift_id", gift.ID, "error", err)
+			}
+		}
+	}
+
+	if err := uc.paymentRepo.Update(ctx, p); err != nil {
+		return fmt.Errorf("payment.HandleInfinitePayWebhook: update: %w", err)
+	}
+
+	slog.Info("payment.HandleInfinitePayWebhook: updated", "order_nsu", orderNSU, "status", newStatus)
 	return nil
 }
 

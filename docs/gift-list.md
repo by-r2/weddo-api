@@ -9,11 +9,9 @@ A lista de presentes de casamento funciona como um catálogo de **presentes virt
 ```
 Acessa a lista → Escolhe presente → Clica "Presentear"
   → Informa nome e mensagem (opcional)
-  → Escolhe forma de pagamento (PIX ou cartão)
-    → PIX: recebe QR code, paga no app do banco
-    → Cartão: preenche dados no checkout
-  → API recebe webhook do Mercado Pago confirmando pagamento
-  → Presente marcado como "comprado"
+  → É direcionado ao checkout do provedor (InfinitePay ou Mercado Pago)
+  → Paga (PIX ou cartão)
+  → Webhook confirma pagamento → presente marcado como "comprado"
   → Convidado vê tela de agradecimento
 ```
 
@@ -23,38 +21,36 @@ Acessa a lista → Escolhe presente → Clica "Presentear"
 Cadastra presentes (nome, descrição, preço, imagem, categoria)
   → Publica a lista
   → Acompanha presentes comprados e valores recebidos
-  → Dinheiro cai na conta Mercado Pago → transfere para banco
+  → Dinheiro cai na conta do provedor → transfere para banco
 ```
 
-## Gateway de Pagamento: Mercado Pago
+## Provedores de Pagamento
 
-### Por que Mercado Pago
+A API suporta dois provedores via `PAYMENT_PROVIDER`. A interface `PaymentGateway` abstrai as diferenças.
 
-- SDK oficial para Go ([mercadopago/sdk-go](https://github.com/mercadopago/sdk-go))
-- PIX com taxa de **~0.5%** (a menor do mercado)
-- Cartão de crédito com taxa de **~4-5%**
-- Amplamente usado no Brasil
-- Webhooks confiáveis para confirmação de pagamento
-- Checkout Transparente (todo o fluxo no nosso site, sem redirecionar)
+### Comparação
 
-### Alternativa Considerada
+| Aspecto | InfinitePay | Mercado Pago |
+|---------|-------------|--------------|
+| **PIX** | **0%** | ~0,99% |
+| **Crédito à vista** | ~2,69% | ~4,98% |
+| **Crédito 12x** | ~8,99% | ~14-17% |
+| **Fluxo** | Redirect (checkout externo) | Transparente (inline no site) |
+| **Webhook** | Sim | Sim |
+| **SDK Go** | Não (API REST simples) | Sim (v1.8.0) |
+| **Ideal para** | Economia | UX premium |
 
-- **Stripe**: suporta PIX no Brasil, mas taxas maiores e menos comum entre brasileiros.
+### InfinitePay (recomendado)
 
-### Configuração Necessária
+Taxas menores, especialmente PIX grátis. O comprador é redirecionado para o checkout da InfinitePay, paga, e volta ao site.
 
-1. Criar conta no [Mercado Pago](https://www.mercadopago.com.br/)
-2. Gerar credenciais de teste (sandbox) e produção
-3. Cadastrar chave PIX na conta
-4. Configurar URL de webhook no painel do MP
+**Variáveis**: `IP_HANDLE`, `IP_REDIRECT_URL`, `IP_WEBHOOK_URL`
 
-### Variáveis de Ambiente
+### Mercado Pago
 
-```
-MP_ACCESS_TOKEN=APP_USR-xxxx          # Token de acesso (sandbox ou produção)
-MP_WEBHOOK_SECRET=xxxx                # Secret para validar webhooks
-MP_NOTIFICATION_URL=https://api.dominio.com/api/v1/payments/webhook
-```
+Checkout transparente — tudo acontece sem sair do site. QR Code PIX inline e tokenização de cartão via SDK JS.
+
+**Variáveis**: `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `MP_NOTIFICATION_URL`, `MP_PIX_EXPIRATION_MINUTES`
 
 ## Onde Cada Coisa Acontece
 
@@ -62,28 +58,55 @@ MP_NOTIFICATION_URL=https://api.dominio.com/api/v1/payments/webhook
 |------------------|--------|
 | Exibir catálogo de presentes | Frontend |
 | Exibir formulário com nome/mensagem | Frontend |
-| Criar pagamento (gerar PIX QR code) | **Backend** (via API do Mercado Pago) |
-| Exibir QR code PIX para o convidado | Frontend (recebe do backend) |
-| Processar checkout com cartão | **Frontend** (SDK JS do Mercado Pago) + **Backend** (criar pagamento) |
-| Confirmar pagamento via webhook | **Backend** (recebe notificação do Mercado Pago) |
+| Criar pagamento (link checkout ou QR code) | **Backend** (via gateway) |
+| Redirecionar para checkout (InfinitePay) | Frontend (recebe `checkout_url`) |
+| Exibir QR code PIX (Mercado Pago) | Frontend (recebe `qr_code`) |
+| Confirmar pagamento via webhook | **Backend** (recebe notificação do provedor) |
 | Marcar presente como comprado | **Backend** |
 | CRUD de presentes | **Backend** (admin) |
 | Relatório financeiro | **Backend** (admin) |
 
-## Fluxo Técnico — PIX
+## Fluxo Técnico — InfinitePay
+
+```
+Frontend                     Backend                      InfinitePay
+   │                            │                              │
+   │  POST /gifts/:id/purchase  │                              │
+   │  { name, email, message,   │                              │
+   │    payment_method: "pix" }  │                              │
+   │───────────────────────────>│                              │
+   │                            │  POST /checkout/links        │
+   │                            │  { handle, items, webhook }  │
+   │                            │─────────────────────────────>│
+   │                            │  { url, slug }               │
+   │                            │<─────────────────────────────│
+   │                            │                              │
+   │  { payment_id,             │                              │
+   │    checkout_url: "..." }   │                              │
+   │<───────────────────────────│                              │
+   │                            │                              │
+   │  [Redireciona → paga]      │                              │
+   │                            │                              │
+   │                            │  POST /webhook               │
+   │                            │  { order_nsu, paid_amount }  │
+   │                            │<─────────────────────────────│
+   │                            │                              │
+   │                            │  [Marca gift como purchased] │
+```
+
+## Fluxo Técnico — Mercado Pago (PIX)
 
 ```
 Frontend                     Backend                      Mercado Pago
    │                            │                              │
    │  POST /gifts/:id/purchase  │                              │
-   │  { name, message }         │                              │
+   │  { name, email, message,   │                              │
+   │    payment_method: "pix" }  │                              │
    │───────────────────────────>│                              │
    │                            │  POST /v1/payments           │
    │                            │  { amount, payer, pix... }   │
    │                            │─────────────────────────────>│
-   │                            │                              │
-   │                            │  { id, qr_code, qr_code_    │
-   │                            │    base64, ticket_url }      │
+   │                            │  { id, qr_code, ... }        │
    │                            │<─────────────────────────────│
    │                            │                              │
    │  { payment_id, qr_code,   │                              │
@@ -93,40 +116,29 @@ Frontend                     Backend                      Mercado Pago
    │                            │                              │
    │  [Convidado paga no app]   │                              │
    │                            │                              │
-   │                            │  POST /webhook (notification)│
+   │                            │  POST /webhook               │
    │                            │  { action: payment.updated } │
    │                            │<─────────────────────────────│
    │                            │                              │
-   │                            │  GET /v1/payments/:id        │
-   │                            │─────────────────────────────>│
-   │                            │  { status: approved }        │
-   │                            │<─────────────────────────────│
-   │                            │                              │
    │                            │  [Marca gift como purchased] │
-   │                            │  [Registra payment]          │
 ```
 
-## Fluxo Técnico — Cartão de Crédito
+## Fluxo Técnico — Mercado Pago (Cartão)
 
-O cartão de crédito usa o Checkout Transparente do Mercado Pago. O frontend coleta os dados do cartão via SDK JS do MP (que tokeniza no lado do cliente, sem dados sensíveis passarem pelo nosso backend).
+O cartão de crédito usa o Checkout Transparente. O frontend coleta os dados do cartão via SDK JS do MP (tokeniza no cliente, sem dados sensíveis no backend).
 
 ```
 Frontend (SDK JS do MP)      Backend                      Mercado Pago
    │                            │                              │
-   │  [Tokeniza cartão via      │                              │
-   │   MercadoPago.js]          │                              │
+   │  [Tokeniza cartão]        │                              │
    │────────────────────────────────────────────────────────-->│
    │  { card_token }            │                              │
    │<──────────────────────────────────────────────────────────│
    │                            │                              │
    │  POST /gifts/:id/purchase  │                              │
-   │  { name, message,          │                              │
-   │    card_token,              │                              │
-   │    payment_method_id,       │                              │
-   │    installments }           │                              │
+   │  { card_token, ... }       │                              │
    │───────────────────────────>│                              │
    │                            │  POST /v1/payments           │
-   │                            │  { token, amount, ... }      │
    │                            │─────────────────────────────>│
    │                            │  { status: approved }        │
    │                            │<─────────────────────────────│
@@ -135,9 +147,17 @@ Frontend (SDK JS do MP)      Backend                      Mercado Pago
    │<───────────────────────────│                              │
 ```
 
+## Comportamento do Frontend
+
+O frontend deve verificar a resposta do `POST /purchase`:
+
+- Se `checkout_url` está presente → **redirecionar** o usuário para essa URL (InfinitePay)
+- Se `qr_code` está presente → **exibir** o QR code inline (Mercado Pago PIX)
+- Se `status: approved` → **exibir** tela de sucesso imediato (Mercado Pago cartão)
+
 ## Segurança
 
-- **Cartão**: nunca toca nosso backend. O SDK JS do Mercado Pago tokeniza no cliente.
-- **Webhook**: validar assinatura do Mercado Pago antes de processar.
-- **Idempotência**: usar `idempotency_key` ao criar pagamentos para evitar duplicatas.
-- **Expiração PIX**: QR code expira em 30 minutos. Se expirar, o presente volta a ficar disponível.
+- **Cartão (Mercado Pago)**: nunca toca nosso backend. O SDK JS do MP tokeniza no cliente.
+- **Webhook**: validar origem antes de processar (IP ou assinatura).
+- **Expiração PIX**: QR code expira em 30 minutos (Mercado Pago). Se expirar, o presente volta a ficar disponível.
+- **Idempotência**: `external_reference` / `order_nsu` previnem duplicatas.

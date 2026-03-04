@@ -141,7 +141,7 @@ Transação de pagamento associada a um presente.
 | id | TEXT | PK | UUID v4 |
 | gift_id | TEXT | FK → gifts(id), NOT NULL | Presente sendo comprado |
 | wedding_id | TEXT | FK → weddings(id), NOT NULL | Casamento (desnormalizado) |
-| provider_id | TEXT | | ID da transação no Mercado Pago |
+| provider_id | TEXT | | ID da transação no provedor (InfinitePay slug ou Mercado Pago ID) |
 | amount | REAL | NOT NULL | Valor cobrado em reais |
 | status | TEXT | NOT NULL, DEFAULT 'pending' | `pending`, `approved`, `rejected`, `expired` |
 | payment_method | TEXT | NOT NULL | `pix` ou `credit_card` |

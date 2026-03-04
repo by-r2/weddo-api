@@ -41,11 +41,14 @@ Substituir o Casar.com por solução própria com PIX e cartão.
 - [x] Entidades Gift + Payment
 - [x] Migrações SQL (004_create_gifts, 005_create_payments)
 - [x] Repositórios SQLite (scoped por wedding_id)
-- [x] Integração Mercado Pago (SDK Go v1.8.0) para PIX e cartão
-- [x] Gateway com graceful degradation (503 se MP_ACCESS_TOKEN não configurado)
+- [x] Gateway de pagamento com Strategy Pattern (interface `PaymentGateway`)
+- [x] Implementação InfinitePay (checkout redirect, PIX 0%)
+- [x] Implementação Mercado Pago (checkout transparente, SDK Go v1.8.0)
+- [x] Seleção de provedor via `PAYMENT_PROVIDER` no `.env`
+- [x] Graceful degradation (503 se `PAYMENT_PROVIDER` não configurado)
 - [x] Use case: listar presentes (público, por tenant)
 - [x] Use case: iniciar pagamento (público — PIX + cartão)
-- [x] Use case: webhook de confirmação (Mercado Pago → API)
+- [x] Use case: webhook de confirmação (InfinitePay ou Mercado Pago → API)
 - [x] Use case: CRUD de presentes (admin, scoped)
 - [x] Use case: dashboard com stats de gifts + receita (admin, scoped)
 - [x] Handlers públicos: `/w/{weddingId}/gifts`, `/w/{weddingId}/gifts/{id}/purchase`, `/payments/{id}/status`
@@ -61,7 +64,7 @@ Substituir o Casar.com por solução própria com PIX e cartão.
 - [x] Rate limiting nos endpoints públicos (httprate)
 - [x] Logs estruturados em produção (JSON via `LOG_FORMAT=json`)
 - [x] Makefile com targets Docker (`docker-build`, `docker-run`, `docker-stop`)
-- [ ] CI/CD básico
+- [x] CI básico (GitHub Actions: build, vet, test, Postman push)
 - [ ] Deploy (VPS, Fly.io, Railway ou similar)
 - [ ] Monitoramento básico (uptime, erros)
 

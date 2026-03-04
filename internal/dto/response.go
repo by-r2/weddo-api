@@ -105,6 +105,7 @@ type PurchaseResponse struct {
 	PaymentID    string  `json:"payment_id"`
 	ProviderID   string  `json:"provider_id"`
 	Status       string  `json:"status"`
+	CheckoutURL  string  `json:"checkout_url,omitempty"`
 	QRCode       string  `json:"qr_code,omitempty"`
 	QRCodeBase64 string  `json:"qr_code_base64,omitempty"`
 	ExpiresAt    *string `json:"expires_at,omitempty"`

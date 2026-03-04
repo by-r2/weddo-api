@@ -1,16 +1,16 @@
 {
   "info": {
-    "_postman_id": "dfdf2d0f-66fa-4def-a16e-56d670ae12bf",
-    "name": "mr-wedding-api",
-    "description": "API multi-tenant para sites de casamento.\n\n## Setup\n\n1. Importe esta collection\n2. Importe o environment `mr-wedding-api.postman_environment.json`\n3. Rode o servidor: `make run`\n4. Execute **Admin > Login** para popular `token` e `weddingId` automaticamente\n5. Pronto — todas as requests usarão as variáveis automaticamente\n\n## Variáveis\n\n| Variável | Preenchida por | Uso |\n|----------|---------------|-----|\n| `baseUrl` | Environment | Base URL do servidor |\n| `token` | Login (auto) | Bearer token JWT |\n| `weddingId` | Login (auto) | UUID do tenant para endpoints públicos |\n| `invitationId` | Criar Convite (auto) | ID do último convite criado |\n| `guestId` | Listar Convidados (auto) | ID do primeiro convidado na lista |\n| `giftId` | Criar Presente (auto) | ID do último presente criado |\n| `paymentId` | Comprar Presente (auto) | ID do último pagamento criado |",
+    "_postman_id": "238cc5c5-2eae-46e5-bef9-419d4fa38406",
+    "name": "wedding-api",
+    "description": "API multi-tenant para sites de casamento.\n\n## Setup\n\n1. Importe esta collection\n2. Importe o environment `local.postman_environment.json`\n3. Rode o servidor: `make run`\n4. Execute **admin > login** para popular `token` e `weddingId` automaticamente\n5. Pronto — todas as requests usarão as variáveis automaticamente\n\n## Variáveis\n\n| Variável | Preenchida por | Uso |\n|----------|---------------|-----|\n| `baseUrl` | Environment | Base URL do servidor |\n| `token` | login (auto) | Bearer token JWT |\n| `weddingId` | login (auto) | UUID do tenant para endpoints públicos |\n| `invitationId` | create-invitation (auto) | ID do último convite criado |\n| `guestId` | list-guests (auto) | ID do primeiro convidado na lista |\n| `giftId` | create-gift (auto) | ID do último presente criado |\n| `paymentId` | purchase-pix (auto) | ID do último pagamento criado |",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "Health",
+      "name": "health",
       "item": [
         {
-          "name": "Health Check",
+          "name": "health-check",
           "event": [
             {
               "listen": "test",
@@ -26,7 +26,7 @@
               }
             }
           ],
-          "id": "ccf475d6-16f9-4633-a222-b955f1afb32a",
+          "id": "ad41cd01-b5a6-4761-be35-7b99573c2334",
           "protocolProfileBehavior": {
             "disableBodyPruning": true
           },
@@ -47,17 +47,17 @@
           "response": []
         }
       ],
-      "id": "114e7a23-8165-4133-a87f-f5294ead5d43",
+      "id": "e68b5281-0021-48ab-bb2c-c392852a0d03",
       "description": "Endpoint de monitoramento."
     },
     {
-      "name": "Admin",
+      "name": "admin",
       "item": [
         {
-          "name": "Auth",
+          "name": "auth",
           "item": [
             {
-              "name": "Login",
+              "name": "login",
               "event": [
                 {
                   "listen": "test",
@@ -77,7 +77,7 @@
                   }
                 }
               ],
-              "id": "7dcbf8f8-22c7-47ff-8812-f5b38324beb8",
+              "id": "ba5d3c33-531f-4e00-8fba-2e832c0c48e1",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -108,13 +108,13 @@
               "response": []
             }
           ],
-          "id": "d1045d2b-37a0-4fce-a898-4e712d8d0636"
+          "id": "6ea5247d-3520-4c3d-8673-bac396833d04"
         },
         {
-          "name": "Dashboard",
+          "name": "dashboard",
           "item": [
             {
-              "name": "Dashboard",
+              "name": "get-dashboard",
               "event": [
                 {
                   "listen": "test",
@@ -130,7 +130,7 @@
                   }
                 }
               ],
-              "id": "b8e3cb89-8e50-416c-9dd3-e287dafb48d1",
+              "id": "611e1358-f51f-47c3-b18b-e860fb78be19",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -152,13 +152,13 @@
               "response": []
             }
           ],
-          "id": "b0b15718-3b56-485d-ad51-dd66bcd80b0a"
+          "id": "f8f385de-1ede-4490-a298-029467a4427d"
         },
         {
-          "name": "Invitations",
+          "name": "invitations",
           "item": [
             {
-              "name": "Criar Convite",
+              "name": "create-invitation",
               "event": [
                 {
                   "listen": "test",
@@ -178,7 +178,7 @@
                   }
                 }
               ],
-              "id": "533c781c-59a3-4386-8feb-c2135370b794",
+              "id": "104c1e1b-d633-41df-960d-b7af241eb4e3",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -209,7 +209,7 @@
               "response": []
             },
             {
-              "name": "Listar Convites",
+              "name": "list-invitations",
               "event": [
                 {
                   "listen": "test",
@@ -224,7 +224,7 @@
                   }
                 }
               ],
-              "id": "745bce1b-c1a6-4e96-8bc4-9c86deec46a1",
+              "id": "e4dc2634-0cf0-4e9a-9b55-fa8ee18e774d",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -261,7 +261,7 @@
               "response": []
             },
             {
-              "name": "Detalhar Convite",
+              "name": "get-invitation",
               "event": [
                 {
                   "listen": "test",
@@ -273,7 +273,7 @@
                   }
                 }
               ],
-              "id": "46f229f4-4aeb-436a-ac9e-0350613b7125",
+              "id": "86e3c15d-bef3-44dd-a5d8-4a81a06170d8",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -296,7 +296,7 @@
               "response": []
             },
             {
-              "name": "Atualizar Convite",
+              "name": "update-invitation",
               "event": [
                 {
                   "listen": "test",
@@ -308,7 +308,7 @@
                   }
                 }
               ],
-              "id": "3c723bd3-35e6-4dd6-9de9-5adb7007b3b0",
+              "id": "046af9cf-51d7-44c9-ac78-601b80d7af03",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -340,7 +340,7 @@
               "response": []
             },
             {
-              "name": "Adicionar Convidado ao Convite",
+              "name": "add-guest-to-invitation",
               "event": [
                 {
                   "listen": "test",
@@ -356,7 +356,7 @@
                   }
                 }
               ],
-              "id": "3e10a6bc-d552-4950-a7b4-807d671f43c3",
+              "id": "d9b2102f-4d7c-4d7e-87f2-0e0e40dad5ea",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -389,7 +389,7 @@
               "response": []
             },
             {
-              "name": "Remover Convite",
+              "name": "delete-invitation",
               "event": [
                 {
                   "listen": "test",
@@ -401,7 +401,7 @@
                   }
                 }
               ],
-              "id": "26aff9eb-c059-40df-ad9d-4caa5b1d13da",
+              "id": "6a693915-792b-4f11-83df-7868ebfc4e7b",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -424,14 +424,14 @@
               "response": []
             }
           ],
-          "id": "a1d821e3-47ea-4f53-b098-75dd4edb2f2f",
+          "id": "c2e3860c-2c0f-4212-a339-070ffb9d15d9",
           "description": "CRUD de convites. Cada convite agrupa convidados (família, casal, etc.)."
         },
         {
-          "name": "Guests",
+          "name": "guests",
           "item": [
             {
-              "name": "Listar Convidados",
+              "name": "list-guests",
               "event": [
                 {
                   "listen": "test",
@@ -448,7 +448,7 @@
                   }
                 }
               ],
-              "id": "25add400-d8d6-4bc4-b471-547f0379648d",
+              "id": "91c94416-41ef-4371-8cf1-45e3fa303f76",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -490,7 +490,7 @@
               "response": []
             },
             {
-              "name": "Detalhar Convidado",
+              "name": "get-guest",
               "event": [
                 {
                   "listen": "test",
@@ -502,7 +502,7 @@
                   }
                 }
               ],
-              "id": "fe5ba5c5-1ca3-4e75-a989-c3612ff13240",
+              "id": "78aac4d7-add0-4828-a502-0b2ea4f85bdf",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -524,7 +524,7 @@
               "response": []
             },
             {
-              "name": "Atualizar Convidado",
+              "name": "update-guest",
               "event": [
                 {
                   "listen": "test",
@@ -536,7 +536,7 @@
                   }
                 }
               ],
-              "id": "7ab4c74a-8212-45ba-a3e2-bb97fde7a720",
+              "id": "3a93e355-1153-45b2-b650-0cd347c1c9f2",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -568,7 +568,7 @@
               "response": []
             },
             {
-              "name": "Remover Convidado",
+              "name": "delete-guest",
               "event": [
                 {
                   "listen": "test",
@@ -580,7 +580,7 @@
                   }
                 }
               ],
-              "id": "d0bc895b-4a9b-48fa-a0fd-bd308272232a",
+              "id": "01634c54-fe17-4336-a8e3-fe5ff50a6374",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -602,14 +602,14 @@
               "response": []
             }
           ],
-          "id": "c54dc96b-b843-4f94-9142-11f42f715651",
+          "id": "aea4fabc-3c8f-4b30-8d66-d47eafc82f56",
           "description": "Gerenciamento individual de convidados."
         },
         {
-          "name": "Gifts",
+          "name": "gifts",
           "item": [
             {
-              "name": "Criar Presente",
+              "name": "create-gift",
               "event": [
                 {
                   "listen": "test",
@@ -625,7 +625,7 @@
                   }
                 }
               ],
-              "id": "25e2ecf4-5c34-4359-8cdc-9d87a5d83dad",
+              "id": "43170e17-484f-4b03-a390-674cf13e18c3",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -656,7 +656,7 @@
               "response": []
             },
             {
-              "name": "Listar Presentes (Admin)",
+              "name": "list-gifts",
               "event": [
                 {
                   "listen": "test",
@@ -668,7 +668,7 @@
                   }
                 }
               ],
-              "id": "058d30f8-8562-49e2-b110-00d5813cbae7",
+              "id": "ebb33691-4e2c-4122-974b-5d9a915a84e7",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -715,7 +715,7 @@
               "response": []
             },
             {
-              "name": "Detalhar Presente",
+              "name": "get-gift",
               "event": [
                 {
                   "listen": "test",
@@ -727,7 +727,7 @@
                   }
                 }
               ],
-              "id": "549e955e-355c-42ef-82f4-88e63dc28816",
+              "id": "4b0e0508-4137-41d9-b74f-2c1c42c22099",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -749,7 +749,7 @@
               "response": []
             },
             {
-              "name": "Atualizar Presente",
+              "name": "update-gift",
               "event": [
                 {
                   "listen": "test",
@@ -761,7 +761,7 @@
                   }
                 }
               ],
-              "id": "7f2a7b7d-dd1f-42cb-991d-15d61c15baa0",
+              "id": "1c3cefa3-e393-481c-b95f-d1acd913873a",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -792,7 +792,7 @@
               "response": []
             },
             {
-              "name": "Remover Presente",
+              "name": "delete-gift",
               "event": [
                 {
                   "listen": "test",
@@ -804,7 +804,7 @@
                   }
                 }
               ],
-              "id": "79745d4e-830f-4a64-814b-757af265d002",
+              "id": "75d098de-c300-4adf-83a2-f0f606ac0d8c",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -826,14 +826,14 @@
               "response": []
             }
           ],
-          "id": "3d11294b-445f-42bb-9b26-7c070b9bc07e",
+          "id": "7808daf0-776b-4e6e-b934-d0de8f90c401",
           "description": "CRUD de presentes para a lista virtual."
         },
         {
-          "name": "Payments",
+          "name": "payments",
           "item": [
             {
-              "name": "Listar Pagamentos",
+              "name": "list-payments",
               "event": [
                 {
                   "listen": "test",
@@ -845,7 +845,7 @@
                   }
                 }
               ],
-              "id": "8cc4d1a0-16ce-46ea-86ef-6c5a9bf65678",
+              "id": "f3eabe5f-07ce-44f0-9fcc-5642a12c1f5a",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -887,7 +887,7 @@
               "response": []
             },
             {
-              "name": "Detalhar Pagamento",
+              "name": "get-payment",
               "event": [
                 {
                   "listen": "test",
@@ -899,7 +899,7 @@
                   }
                 }
               ],
-              "id": "c85194ee-b88f-41c7-b299-805a6a9fe63f",
+              "id": "594b3746-aa23-465a-9a79-16cf836e400e",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -921,12 +921,12 @@
               "response": []
             }
           ],
-          "id": "66e9eb9e-f49d-4763-90d6-967bcf31db4f",
+          "id": "22391817-5e39-4ea6-8bf9-b895bea5218c",
           "description": "Consulta de pagamentos (somente leitura para admin)."
         }
       ],
-      "id": "6c281f8d-6420-4565-bbb5-b82f1c7db8a4",
-      "description": "Endpoints protegidos por JWT. Rode **Login** primeiro para popular o token automaticamente.",
+      "id": "92b28b6f-0afd-4763-9cbe-13ca9e56661f",
+      "description": "Endpoints protegidos por JWT. Rode **login** primeiro para popular o token automaticamente.",
       "auth": {
         "type": "bearer",
         "bearer": [
@@ -939,13 +939,13 @@
       }
     },
     {
-      "name": "Público",
+      "name": "public",
       "item": [
         {
-          "name": "RSVP",
+          "name": "rsvp",
           "item": [
             {
-              "name": "Confirmar Presença",
+              "name": "confirm-rsvp",
               "event": [
                 {
                   "listen": "test",
@@ -962,7 +962,7 @@
                   }
                 }
               ],
-              "id": "8222c48e-6e33-41f9-af20-2a4c525d5cc1",
+              "id": "190e99ef-b800-4a90-8544-b995661a429e",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -994,7 +994,7 @@
               "response": []
             },
             {
-              "name": "Consultar Convite",
+              "name": "lookup-invitation",
               "event": [
                 {
                   "listen": "test",
@@ -1009,7 +1009,7 @@
                   }
                 }
               ],
-              "id": "168c67b2-90bd-444e-bd1f-0688019e9f12",
+              "id": "755e0bf4-f2c9-4938-a67d-fcb580d3e280",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -1040,14 +1040,14 @@
               "response": []
             }
           ],
-          "id": "73ada0fc-4647-40bb-862b-072abd602f4b",
+          "id": "55b9675f-8aa0-40e4-8ce4-5081f3710a33",
           "description": "Confirmação de presença. Não requer autenticação."
         },
         {
-          "name": "Gifts",
+          "name": "gifts",
           "item": [
             {
-              "name": "Listar Presentes (Público)",
+              "name": "list-gifts",
               "event": [
                 {
                   "listen": "test",
@@ -1067,7 +1067,7 @@
                   }
                 }
               ],
-              "id": "fb956044-879c-4e0a-bf4a-3b08e4980de0",
+              "id": "7b03fc0d-0d6c-4474-aba8-3bad5b87fceb",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -1110,7 +1110,7 @@
               "response": []
             },
             {
-              "name": "Detalhar Presente (Público)",
+              "name": "get-gift",
               "event": [
                 {
                   "listen": "test",
@@ -1122,7 +1122,7 @@
                   }
                 }
               ],
-              "id": "5c4fb6c4-30f4-4fce-8d90-a5e4aae178ce",
+              "id": "5495c577-14eb-4b3a-bc5a-964d2630c52d",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -1145,7 +1145,7 @@
               "response": []
             },
             {
-              "name": "Comprar Presente (PIX)",
+              "name": "purchase-pix",
               "event": [
                 {
                   "listen": "test",
@@ -1159,13 +1159,15 @@
                       "if (pm.response.code === 201) {",
                       "  const body = pm.response.json();",
                       "  pm.environment.set('paymentId', body.payment_id);",
-                      "  pm.test('Tem QR code', () => pm.expect(body.qr_code).to.be.a('string'));",
+                      "  pm.test('Tem checkout_url ou qr_code', () => {",
+                      "    pm.expect(body.checkout_url || body.qr_code).to.be.a('string');",
+                      "  });",
                       "}"
                     ]
                   }
                 }
               ],
-              "id": "361f061f-0cb8-45ea-a007-5935e931e73e",
+              "id": "e8e1738b-7dbb-429d-afde-48f812f7ac95",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -1179,7 +1181,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"payer_name\": \"Tia Maria\",\n  \"payer_email\": \"maria@email.com\",\n  \"message\": \"Felicidades ao casal!\",\n  \"payment_method\": \"pix\"\n}"
+                  "raw": "{\n  \"payer_name\": \"Tia Maria\",\n  \"payer_email\": \"maria@email.com\",\n  \"message\": \"Felicidades ao casal!\",\n  \"payment_method\": \"pix\",\n  \"redirect_url\": \"https://manurafa.com.br/obrigado\"\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/w/{{weddingId}}/gifts/{{giftId}}/purchase",
@@ -1194,12 +1196,12 @@
                     "purchase"
                   ]
                 },
-                "description": "Inicia pagamento via PIX. Retorna QR code e código copia-e-cola.\n\nRequer `MP_ACCESS_TOKEN` configurado no servidor."
+                "description": "Inicia pagamento via PIX.\n\n- **InfinitePay**: retorna `checkout_url` (redirecionar o usuário)\n- **Mercado Pago**: retorna `qr_code` e `qr_code_base64` (exibir inline)\n\nO campo `redirect_url` é opcional (sobrescreve `IP_REDIRECT_URL` global, apenas InfinitePay).\n\nRequer `PAYMENT_PROVIDER` configurado no servidor."
               },
               "response": []
             },
             {
-              "name": "Comprar Presente (Cartão)",
+              "name": "purchase-card",
               "event": [
                 {
                   "listen": "test",
@@ -1217,7 +1219,7 @@
                   }
                 }
               ],
-              "id": "3b7c59f1-e0a7-4ca0-ba72-363549e030b2",
+              "id": "df30b5e4-8ef3-43df-8cf6-cbe397afb906",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -1246,19 +1248,19 @@
                     "purchase"
                   ]
                 },
-                "description": "Inicia pagamento via cartão de crédito.\n\nO `card_token` é gerado pelo MercadoPago.js no frontend. Em sandbox, use tokens de teste do Mercado Pago."
+                "description": "Inicia pagamento via cartão de crédito.\n\n- **Mercado Pago**: `card_token` é gerado pelo MercadoPago.js no frontend. Em sandbox, use tokens de teste.\n- **InfinitePay**: `card_token` e `payment_method_id` são ignorados — o checkout de cartão acontece no redirect.\n\nRequer `PAYMENT_PROVIDER` configurado no servidor."
               },
               "response": []
             }
           ],
-          "id": "461bc9ea-b95c-443e-af49-180cfd411dee",
+          "id": "60c4fd49-aa85-4487-a0b1-88c401aeaa90",
           "description": "Lista de presentes e fluxo de compra. Não requer autenticação."
         },
         {
-          "name": "Payments",
+          "name": "payments",
           "item": [
             {
-              "name": "Status do Pagamento",
+              "name": "get-payment-status",
               "event": [
                 {
                   "listen": "test",
@@ -1273,7 +1275,7 @@
                   }
                 }
               ],
-              "id": "5046edd0-f15e-491f-9244-c8244fac1f01",
+              "id": "3433142e-9d18-411b-b5bf-064922d10adb",
               "protocolProfileBehavior": {
                 "disableBodyPruning": true
               },
@@ -1298,21 +1300,21 @@
               "response": []
             }
           ],
-          "id": "23c56c26-b01a-4120-b451-29974d76d5f0",
+          "id": "59217ee7-2c30-4e41-82de-31a29380074e",
           "description": "Consulta pública de pagamentos."
         }
       ],
-      "id": "f8a8760b-0548-40a9-b416-3b4935d0b466",
+      "id": "8aaafd83-98d9-4a98-9917-2e99fe10eecd",
       "description": "Endpoints públicos. Não requerem autenticação. O tenant é identificado pelo `weddingId` na URL.",
       "auth": {
         "type": "noauth"
       }
     },
     {
-      "name": "Webhook",
+      "name": "webhook",
       "item": [
         {
-          "name": "Mercado Pago Webhook",
+          "name": "webhook-infinitepay",
           "event": [
             {
               "listen": "test",
@@ -1326,7 +1328,52 @@
               }
             }
           ],
-          "id": "d0894f9b-3055-4d82-8759-bad4cb1d7b51",
+          "id": "cc8964ba-b8ec-482e-ad7e-172741d4feb0",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoice_slug\": \"abc123\",\n  \"amount\": 35000,\n  \"paid_amount\": 35000,\n  \"installments\": 1,\n  \"capture_method\": \"pix\",\n  \"transaction_nsu\": \"uuid-da-transacao\",\n  \"order_nsu\": \"{{paymentId}}\",\n  \"receipt_url\": \"https://comprovante.com/123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "webhook"
+              ]
+            },
+            "description": "Simula uma notificação da InfinitePay.\n\nEm produção, este endpoint é chamado automaticamente pela InfinitePay quando o pagamento é aprovado.\n\n- `order_nsu`: ID do pagamento no nosso sistema (payment_id)\n- `paid_amount`: valor pago em centavos\n\nUse quando `PAYMENT_PROVIDER=infinitepay`."
+          },
+          "response": []
+        },
+        {
+          "name": "webhook-mercadopago",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 ou 503', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 503]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "id": "d9d8d1e1-a6dd-44e6-8802-913a45345066",
           "protocolProfileBehavior": {
             "disableBodyPruning": true
           },
@@ -1352,13 +1399,13 @@
                 "webhook"
               ]
             },
-            "description": "Simula uma notificação do Mercado Pago.\n\nEm produção, este endpoint é chamado automaticamente pelo Mercado Pago. O `data.id` é o ID do pagamento no Mercado Pago (provider_id)."
+            "description": "Simula uma notificação do Mercado Pago.\n\nEm produção, este endpoint é chamado automaticamente pelo Mercado Pago.\n\n- `data.id`: ID do pagamento no Mercado Pago (provider_id)\n\nUse quando `PAYMENT_PROVIDER=mercadopago`."
           },
           "response": []
         }
       ],
-      "id": "81168c0e-af71-4938-b602-239c7840aaff",
-      "description": "Webhooks de provedores externos. Não requerem JWT — validação via assinatura do provider."
+      "id": "f713027b-aec6-4f65-ae3c-c4d072279398",
+      "description": "Webhooks de provedores de pagamento. Não requerem JWT. O formato do payload depende do `PAYMENT_PROVIDER` configurado (InfinitePay ou Mercado Pago)."
     }
   ],
   "auth": {

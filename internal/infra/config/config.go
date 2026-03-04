@@ -19,10 +19,16 @@ type Config struct {
 	SeedAdminEmail   string `envconfig:"SEED_ADMIN_EMAIL" default:""`
 	SeedAdminPassword string `envconfig:"SEED_ADMIN_PASSWORD" default:""`
 
+	PaymentProvider string `envconfig:"PAYMENT_PROVIDER" default:""`
+
 	MPAccessToken       string `envconfig:"MP_ACCESS_TOKEN" default:""`
 	MPWebhookSecret     string `envconfig:"MP_WEBHOOK_SECRET" default:""`
 	MPNotificationURL   string `envconfig:"MP_NOTIFICATION_URL" default:""`
 	MPPixExpirationMin  int    `envconfig:"MP_PIX_EXPIRATION_MINUTES" default:"30"`
+
+	IPHandle      string `envconfig:"IP_HANDLE" default:""`
+	IPRedirectURL string `envconfig:"IP_REDIRECT_URL" default:""`
+	IPWebhookURL  string `envconfig:"IP_WEBHOOK_URL" default:""`
 
 	CORSAllowedOrigins string `envconfig:"CORS_ALLOWED_ORIGINS" default:"*"`
 	LogLevel           string `envconfig:"LOG_LEVEL" default:"info"`

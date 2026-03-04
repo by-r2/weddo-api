@@ -76,4 +76,5 @@ type PurchaseGiftRequest struct {
 	CardToken       string `json:"card_token"`
 	PaymentMethodID string `json:"payment_method_id"`
 	Installments    int    `json:"installments"`
+	RedirectURL     string `json:"redirect_url"`
 }

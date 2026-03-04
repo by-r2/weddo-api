@@ -1,4 +1,7 @@
-.PHONY: build run test clean setup migrate-up migrate-down seed-dev docker-build docker-run docker-stop
+-include .env
+export
+
+.PHONY: build run test clean setup migrate-up migrate-down seed-dev docker-build docker-run docker-stop postman-push
 
 BINARY=bin/api
 MAIN=cmd/api/main.go
@@ -43,3 +46,7 @@ docker-run:
 
 docker-stop:
 	docker stop $(IMAGE) && docker rm $(IMAGE)
+
+postman-push:
+	@test -n "$(POSTMAN_API_KEY)" || (echo "Erro: POSTMAN_API_KEY não definida. Preencha no .env ou exporte." && exit 1)
+	cd postman && postman login --with-api-key "$(POSTMAN_API_KEY)" && postman workspace push --yes

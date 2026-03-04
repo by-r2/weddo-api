@@ -22,7 +22,7 @@ func NewPaymentHandler(uc *paymentuc.UseCase) *PaymentHandler {
 
 func (h *PaymentHandler) checkAvailable(w http.ResponseWriter) bool {
 	if h.paymentUC == nil {
-		respondError(w, http.StatusServiceUnavailable, "Pagamentos não configurados. Configure MP_ACCESS_TOKEN.")
+		respondError(w, http.StatusServiceUnavailable, "Pagamentos não configurados. Configure PAYMENT_PROVIDER no .env.")
 		return false
 	}
 	return true
@@ -56,6 +56,7 @@ func (h *PaymentHandler) Purchase(w http.ResponseWriter, r *http.Request) {
 		CardToken:       req.CardToken,
 		PaymentMethodID: req.PaymentMethodID,
 		Installments:    req.Installments,
+		RedirectURL:     req.RedirectURL,
 	})
 	if err != nil {
 		if err == entity.ErrNotFound {
@@ -75,6 +76,10 @@ func (h *PaymentHandler) Purchase(w http.ResponseWriter, r *http.Request) {
 		PaymentID:  result.Payment.ID,
 		ProviderID: result.Payment.ProviderID,
 		Status:     string(result.Payment.Status),
+	}
+
+	if result.CheckoutURL != "" {
+		resp.CheckoutURL = result.CheckoutURL
 	}
 
 	if result.QRCode != "" {
@@ -113,20 +118,18 @@ func (h *PaymentHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-type webhookPayload struct {
-	Action string          `json:"action"`
-	Data   json.RawMessage `json:"data"`
-}
+// --- Webhooks ---
 
-type webhookData struct {
-	ID string `json:"id"`
-}
-
-func (h *PaymentHandler) Webhook(w http.ResponseWriter, r *http.Request) {
+// WebhookMercadoPago processa notificações do Mercado Pago.
+func (h *PaymentHandler) WebhookMercadoPago(w http.ResponseWriter, r *http.Request) {
 	if !h.checkAvailable(w) {
 		return
 	}
-	var payload webhookPayload
+
+	var payload struct {
+		Action string          `json:"action"`
+		Data   json.RawMessage `json:"data"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -137,9 +140,11 @@ func (h *PaymentHandler) Webhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var data webhookData
+	var data struct {
+		ID string `json:"id"`
+	}
 	if err := json.Unmarshal(payload.Data, &data); err != nil {
-		slog.Error("webhook: failed to parse data", "error", err)
+		slog.Error("webhook.mp: failed to parse data", "error", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -150,12 +155,63 @@ func (h *PaymentHandler) Webhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.paymentUC.HandleWebhook(r.Context(), data.ID); err != nil {
-		slog.Error("webhook: failed to handle", "provider_id", data.ID, "error", err)
+		slog.Error("webhook.mp: failed to handle", "provider_id", data.ID, "error", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+// WebhookInfinitePay processa notificações da InfinitePay.
+func (h *PaymentHandler) WebhookInfinitePay(w http.ResponseWriter, r *http.Request) {
+	if !h.checkAvailable(w) {
+		return
+	}
+
+	var payload struct {
+		InvoiceSlug    string `json:"invoice_slug"`
+		Amount         int    `json:"amount"`
+		PaidAmount     int    `json:"paid_amount"`
+		Installments   int    `json:"installments"`
+		CaptureMethod  string `json:"capture_method"`
+		TransactionNSU string `json:"transaction_nsu"`
+		OrderNSU       string `json:"order_nsu"`
+		ReceiptURL     string `json:"receipt_url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if payload.OrderNSU == "" && payload.InvoiceSlug == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	paid := payload.PaidAmount > 0
+
+	if err := h.paymentUC.HandleInfinitePayWebhook(r.Context(), payload.OrderNSU, payload.InvoiceSlug, paid); err != nil {
+		slog.Error("webhook.ip: failed to handle", "order_nsu", payload.OrderNSU, "error", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// Webhook é o handler legado — roteia para o provedor correto com base no corpo.
+// Mantido para retrocompatibilidade; prefira usar os endpoints específicos.
+func (h *PaymentHandler) Webhook(w http.ResponseWriter, r *http.Request) {
+	if !h.checkAvailable(w) {
+		return
+	}
+
+	if h.paymentUC.ProviderName() == "infinitepay" {
+		h.WebhookInfinitePay(w, r)
+		return
+	}
+	h.WebhookMercadoPago(w, r)
 }
 
 func (h *PaymentHandler) ListAdmin(w http.ResponseWriter, r *http.Request) {

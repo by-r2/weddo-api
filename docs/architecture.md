@@ -8,7 +8,7 @@ O projeto segue Clean Architecture com dependências apontando para o centro (do
 ┌─────────────────────────────────────────┐
 │  infra/web (handlers, middlewares)      │
 │  infra/database (repositórios SQLite)   │
-│  infra/gateway (Mercado Pago)           │
+│  infra/gateway (InfinitePay, MP)        │
 │  infra/config                           │
 │  ┌───────────────────────────────────┐  │
 │  │  usecase (regras de aplicação)    │  │
@@ -34,10 +34,11 @@ O projeto segue Clean Architecture com dependências apontando para o centro (do
 |--------|--------|------------------|
 | Domain | `internal/domain/entity` | Entidades e erros de domínio |
 | Domain | `internal/domain/repository` | Interfaces dos repositórios (contratos) |
+| Domain | `internal/domain/gateway` | Interface do gateway de pagamento (contrato) |
 | Use Case | `internal/usecase/*` | Orquestração de regras de negócio por contexto |
 | DTO | `internal/dto` | Structs de request/response para a camada HTTP |
 | Infra | `internal/infra/database` | Conexão SQLite, migrações e implementação dos repositórios |
-| Infra | `internal/infra/gateway` | Clientes de serviços externos (Mercado Pago) |
+| Infra | `internal/infra/gateway` | Implementações do gateway de pagamento (InfinitePay, Mercado Pago) |
 | Infra | `internal/infra/web/handler` | Handlers HTTP + helpers (response JSON, validação) |
 | Infra | `internal/infra/web/middleware` | Auth JWT, TenantResolver, Logger, Recovery |
 | Infra | `internal/infra/config` | Leitura de variáveis de ambiente |
@@ -117,9 +118,16 @@ Migrações versionadas em SQL puro (up/down), executadas automaticamente no boo
 
 Token stateless com `wedding_id` e `email` nos claims, assinado com HMAC-SHA256. Cada casamento tem seu próprio admin (email + senha bcrypt). Expiração configurável via `JWT_EXPIRATION_HOURS`.
 
-### Mercado Pago (pagamentos)
+### Gateway de pagamento (Strategy Pattern)
 
-Gateway para lista de presentes. SDK oficial em Go (v1.8.0). PIX (~0.5% taxa) e cartão (~4-5%). Checkout Transparente. Credenciais globais via env (futuro: por tenant). Gateway com graceful degradation — se `MP_ACCESS_TOKEN` não estiver configurado, endpoints de pagamento retornam `503 Service Unavailable`. Detalhes em [gift-list.md](gift-list.md).
+A interface `PaymentGateway` (`internal/domain/gateway/payment.go`) define o contrato para qualquer provedor de pagamento. Duas implementações:
+
+| Provedor | Fluxo | Taxa PIX | Vantagem |
+|----------|-------|----------|----------|
+| **InfinitePay** | Redirect (checkout externo) | **0%** | Mais barato |
+| **Mercado Pago** | Transparente (inline, SDK Go v1.8.0) | ~0,99% | Melhor UX |
+
+Seleção via `PAYMENT_PROVIDER` no `.env`. Graceful degradation — se não configurado, endpoints de pagamento retornam `503 Service Unavailable`. Detalhes em [gift-list.md](gift-list.md).
 
 ### Validação com go-playground/validator
 
@@ -157,12 +165,14 @@ mr-wedding-api/
 │   │   │   ├── gift.go                # Entidade Gift + GiftStatus enum
 │   │   │   ├── payment.go             # Entidade Payment + PaymentStatus/Method enums
 │   │   │   └── errors.go              # Erros de domínio
-│   │   └── repository/
-│   │       ├── wedding.go             # Interface WeddingRepository
-│   │       ├── invitation.go          # Interface InvitationRepository
-│   │       ├── guest.go               # Interface GuestRepository
-│   │       ├── gift.go                # Interface GiftRepository
-│   │       └── payment.go             # Interface PaymentRepository
+│   │   ├── repository/
+│   │   │   ├── wedding.go             # Interface WeddingRepository
+│   │   │   ├── invitation.go          # Interface InvitationRepository
+│   │   │   ├── guest.go               # Interface GuestRepository
+│   │   │   ├── gift.go                # Interface GiftRepository
+│   │   │   └── payment.go             # Interface PaymentRepository
+│   │   └── gateway/
+│   │       └── payment.go             # Interface PaymentGateway
 │   ├── usecase/
 │   │   ├── wedding/
 │   │   │   └── wedding.go             # Authenticate, Seed
@@ -190,7 +200,8 @@ mr-wedding-api/
 │       │   ├── gift_repository.go     # Implementação GiftRepository
 │       │   └── payment_repository.go  # Implementação PaymentRepository
 │       ├── gateway/
-│       │   └── mercadopago.go         # SDK Mercado Pago (PIX + cartão)
+│       │   ├── infinitepay.go         # InfinitePay API (checkout redirect)
+│       │   └── mercadopago.go         # Mercado Pago SDK (checkout transparente)
 │       ├── seed/
 │       │   └── dev.go                 # Dados fictícios para desenvolvimento
 │       └── web/

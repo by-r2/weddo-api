@@ -74,16 +74,35 @@ func main() {
 	giftUC := giftuc.NewUseCase(giftRepo, paymentRepo)
 
 	var paymentUC *paymentuc.UseCase
-	if cfg.MPAccessToken != "" {
+	switch strings.ToLower(cfg.PaymentProvider) {
+	case "infinitepay":
+		if cfg.IPHandle == "" {
+			slog.Error("PAYMENT_PROVIDER=infinitepay requer IP_HANDLE")
+			os.Exit(1)
+		}
+		ipGateway := gateway.NewInfinitePayGateway(cfg.IPHandle, cfg.IPRedirectURL, cfg.IPWebhookURL)
+		paymentUC = paymentuc.NewUseCase(paymentRepo, giftRepo, ipGateway)
+		slog.Info("payment gateway initialized", "provider", "infinitepay")
+
+	case "mercadopago":
+		if cfg.MPAccessToken == "" {
+			slog.Error("PAYMENT_PROVIDER=mercadopago requer MP_ACCESS_TOKEN")
+			os.Exit(1)
+		}
 		mpGateway, err := gateway.NewMercadoPagoGateway(cfg.MPAccessToken, cfg.MPNotificationURL, cfg.MPPixExpirationMin)
 		if err != nil {
 			slog.Error("failed to init mercado pago gateway", "error", err)
 			os.Exit(1)
 		}
 		paymentUC = paymentuc.NewUseCase(paymentRepo, giftRepo, mpGateway)
-		slog.Info("mercado pago gateway initialized")
-	} else {
-		slog.Warn("MP_ACCESS_TOKEN not set — payment endpoints will return 503")
+		slog.Info("payment gateway initialized", "provider", "mercadopago")
+
+	case "":
+		slog.Warn("PAYMENT_PROVIDER não definido — endpoints de pagamento retornarão 503")
+
+	default:
+		slog.Error("PAYMENT_PROVIDER inválido — use 'infinitepay' ou 'mercadopago'", "value", cfg.PaymentProvider)
+		os.Exit(1)
 	}
 
 	if cfg.SeedAdminEmail != "" && cfg.SeedAdminPassword != "" {

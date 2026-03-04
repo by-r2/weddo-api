@@ -6,13 +6,15 @@ import (
 	"strconv"
 	"time"
 
+	gw "github.com/rafaeljurkfitz/mr-wedding-api/internal/domain/gateway"
+
 	mpconfig "github.com/mercadopago/sdk-go/pkg/config"
 	"github.com/mercadopago/sdk-go/pkg/payment"
 )
 
 type MercadoPagoGateway struct {
-	client          payment.Client
-	notificationURL string
+	client           payment.Client
+	notificationURL  string
 	pixExpirationMin int
 }
 
@@ -23,38 +25,24 @@ func NewMercadoPagoGateway(accessToken, notificationURL string, pixExpirationMin
 	}
 
 	return &MercadoPagoGateway{
-		client:          payment.NewClient(cfg),
-		notificationURL: notificationURL,
+		client:           payment.NewClient(cfg),
+		notificationURL:  notificationURL,
 		pixExpirationMin: pixExpirationMin,
 	}, nil
 }
 
-type CreatePixInput struct {
-	Amount            float64
-	Description       string
-	PayerEmail        string
-	ExternalReference string
+func (g *MercadoPagoGateway) Name() string {
+	return "mercadopago"
 }
 
-type CreateCardInput struct {
-	Amount            float64
-	Description       string
-	PayerEmail        string
-	CardToken         string
-	PaymentMethodID   string
-	Installments      int
-	ExternalReference string
+func (g *MercadoPagoGateway) CreatePayment(ctx context.Context, input gw.CreatePaymentInput) (*gw.PaymentResult, error) {
+	if input.PaymentMethod == "pix" {
+		return g.createPixPayment(ctx, input)
+	}
+	return g.createCardPayment(ctx, input)
 }
 
-type PaymentResult struct {
-	ProviderID   string
-	Status       string
-	QRCode       string
-	QRCodeBase64 string
-	ExpiresAt    *time.Time
-}
-
-func (g *MercadoPagoGateway) CreatePixPayment(ctx context.Context, input CreatePixInput) (*PaymentResult, error) {
+func (g *MercadoPagoGateway) createPixPayment(ctx context.Context, input gw.CreatePaymentInput) (*gw.PaymentResult, error) {
 	expiration := time.Now().Add(time.Duration(g.pixExpirationMin) * time.Minute)
 
 	req := payment.Request{
@@ -74,7 +62,7 @@ func (g *MercadoPagoGateway) CreatePixPayment(ctx context.Context, input CreateP
 		return nil, fmt.Errorf("mercadopago.CreatePixPayment: %w", err)
 	}
 
-	return &PaymentResult{
+	return &gw.PaymentResult{
 		ProviderID:   strconv.Itoa(resp.ID),
 		Status:       resp.Status,
 		QRCode:       resp.PointOfInteraction.TransactionData.QRCode,
@@ -83,7 +71,7 @@ func (g *MercadoPagoGateway) CreatePixPayment(ctx context.Context, input CreateP
 	}, nil
 }
 
-func (g *MercadoPagoGateway) CreateCardPayment(ctx context.Context, input CreateCardInput) (*PaymentResult, error) {
+func (g *MercadoPagoGateway) createCardPayment(ctx context.Context, input gw.CreatePaymentInput) (*gw.PaymentResult, error) {
 	installments := input.Installments
 	if installments < 1 {
 		installments = 1
@@ -107,24 +95,24 @@ func (g *MercadoPagoGateway) CreateCardPayment(ctx context.Context, input Create
 		return nil, fmt.Errorf("mercadopago.CreateCardPayment: %w", err)
 	}
 
-	return &PaymentResult{
+	return &gw.PaymentResult{
 		ProviderID: strconv.Itoa(resp.ID),
 		Status:     resp.Status,
 	}, nil
 }
 
-func (g *MercadoPagoGateway) GetPayment(ctx context.Context, providerID string) (*PaymentResult, error) {
+func (g *MercadoPagoGateway) GetPaymentStatus(ctx context.Context, providerID string) (*gw.WebhookResult, error) {
 	id, err := strconv.Atoi(providerID)
 	if err != nil {
-		return nil, fmt.Errorf("mercadopago.GetPayment: invalid provider ID: %w", err)
+		return nil, fmt.Errorf("mercadopago.GetPaymentStatus: invalid provider ID: %w", err)
 	}
 
 	resp, err := g.client.Get(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("mercadopago.GetPayment: %w", err)
+		return nil, fmt.Errorf("mercadopago.GetPaymentStatus: %w", err)
 	}
 
-	return &PaymentResult{
+	return &gw.WebhookResult{
 		ProviderID: strconv.Itoa(resp.ID),
 		Status:     resp.Status,
 	}, nil

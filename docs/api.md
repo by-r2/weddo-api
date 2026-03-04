@@ -128,7 +128,6 @@ GET /api/v1/w/{weddingId}/gifts?category=cozinha
 ```
 
 A listagem pública mostra apenas presentes com status `available`. Filtros opcionais: `?category=Cozinha&search=panela&page=1&per_page=20`.
-```
 
 ### Detalhar Presente
 
@@ -142,18 +141,35 @@ GET /api/v1/w/{weddingId}/gifts/{id}
 POST /api/v1/w/{weddingId}/gifts/{id}/purchase
 ```
 
-**Request — PIX:**
+**Request:**
 
 ```json
 {
   "payer_name": "Tia Maria",
   "payer_email": "maria@email.com",
   "message": "Felicidades ao casal!",
-  "payment_method": "pix"
+  "payment_method": "pix",
+  "redirect_url": "https://manurafa.com.br/obrigado"
 }
 ```
 
-**Response 201 — PIX QR code gerado:**
+> `redirect_url` é opcional — sobrescreve o `IP_REDIRECT_URL` global (apenas InfinitePay).
+> `card_token`, `payment_method_id` e `installments` são obrigatórios apenas para `credit_card` com Mercado Pago.
+
+**Response 201 — InfinitePay (checkout redirect):**
+
+```json
+{
+  "payment_id": "uuid",
+  "provider_id": "slug-abc123",
+  "status": "pending",
+  "checkout_url": "https://checkout.infinitepay.io/abc123"
+}
+```
+
+> Frontend deve redirecionar o usuário para `checkout_url`.
+
+**Response 201 — Mercado Pago PIX (QR code inline):**
 
 ```json
 {
@@ -166,21 +182,7 @@ POST /api/v1/w/{weddingId}/gifts/{id}/purchase
 }
 ```
 
-**Request — Cartão de crédito:**
-
-```json
-{
-  "payer_name": "Tia Maria",
-  "payer_email": "maria@email.com",
-  "message": "Felicidades ao casal!",
-  "payment_method": "credit_card",
-  "card_token": "token-do-sdk-js",
-  "installments": 1,
-  "payment_method_id": "visa"
-}
-```
-
-**Response 201 — pagamento aprovado:**
+**Response 201 — Mercado Pago cartão (aprovação imediata):**
 
 ```json
 {
@@ -190,9 +192,14 @@ POST /api/v1/w/{weddingId}/gifts/{id}/purchase
 }
 ```
 
+**Lógica do frontend:**
+- Se `checkout_url` presente → redirecionar
+- Se `qr_code` presente → exibir QR code
+- Se `status: approved` → tela de sucesso
+
 ### Consultar Status do Pagamento
 
-Polling enquanto aguarda pagamento PIX.
+Polling enquanto aguarda pagamento.
 
 ```
 GET /api/v1/w/{weddingId}/payments/{id}/status
@@ -208,13 +215,15 @@ GET /api/v1/w/{weddingId}/payments/{id}/status
 }
 ```
 
-### Webhook Mercado Pago
+### Webhook de Pagamento
 
-Recebe notificações de pagamento. Não é chamado pelo frontend. O tenant é resolvido internamente via `payment → gift → wedding`.
+Recebe notificações do provedor ativo. Não é chamado pelo frontend. O tenant é resolvido internamente via `payment → gift → wedding`.
 
 ```
 POST /api/v1/payments/webhook
 ```
+
+O formato do payload depende do provedor configurado em `PAYMENT_PROVIDER`. A API detecta e processa automaticamente.
 
 ---
 
@@ -369,7 +378,7 @@ GET /api/v1/admin/payments/{id}           # detalhar
 | 404 | Recurso não encontrado ou wedding_id inválido |
 | 409 | Conflito (ex: presença já confirmada, presente indisponível) |
 | 500 | Erro interno |
-| 503 | Serviço indisponível (ex: pagamentos sem MP_ACCESS_TOKEN) |
+| 503 | Serviço indisponível (ex: `PAYMENT_PROVIDER` não configurado) |
 
 ---
 

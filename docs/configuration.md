@@ -74,16 +74,66 @@ python3 -c "import secrets; print('-'.join(secrets.choice('abcdefghijklmnopqrstu
 
 > A senha é hasheada com **bcrypt** antes de ser armazenada. O valor em texto plano existe apenas no `.env` (que é gitignored).
 
-## Mercado Pago (Fase 3 — Lista de Presentes)
+## Pagamentos (Lista de Presentes)
+
+A API suporta dois provedores de pagamento. Escolha um via `PAYMENT_PROVIDER`:
+
+| Variável | Descrição | Default | Obrigatório |
+|----------|-----------|---------|-------------|
+| `PAYMENT_PROVIDER` | Provedor ativo: `infinitepay` ou `mercadopago` | (vazio = desabilitado) | Sim* |
+
+*Se vazio, endpoints de pagamento retornam `503 Service Unavailable`.
+
+### InfinitePay (recomendado — taxas menores)
+
+| Taxa | Valor |
+|------|-------|
+| PIX | **0%** |
+| Crédito à vista | ~2,69% |
+| Crédito 12x | ~8,99% |
 
 | Variável | Descrição | Obrigatório |
 |----------|-----------|-------------|
-| `MP_ACCESS_TOKEN` | Token de acesso à API do Mercado Pago | Sim (Fase 3) |
-| `MP_WEBHOOK_SECRET` | Segredo para validar assinatura dos webhooks | Sim (Fase 3) |
-| `MP_NOTIFICATION_URL` | URL pública que receberá notificações de pagamento | Sim (Fase 3) |
+| `IP_HANDLE` | Sua InfiniteTag (nome de usuário no app, sem o `$`) | Sim |
+| `IP_REDIRECT_URL` | URL para onde o comprador volta após pagar | Não |
+| `IP_WEBHOOK_URL` | URL que receberá notificações de pagamento | Não |
+
+**Fluxo**: checkout por redirect — o comprador é enviado para a tela da InfinitePay, paga (PIX ou cartão), e volta ao site.
+
+#### Como obter a InfiniteTag
+
+1. Baixe o app [InfinitePay](https://www.infinitepay.io/) e crie uma conta
+2. Sua **InfiniteTag** fica em **Configurações > Perfil** (ex: `manu-rafa`)
+3. Use sem o símbolo `$`: `IP_HANDLE=manu-rafa`
+
+#### Webhook
+
+Configure `IP_WEBHOOK_URL` com a URL pública da sua API:
+
+```
+IP_WEBHOOK_URL=https://api.manurafa.com.br/api/v1/payments/webhook
+```
+
+A InfinitePay envia um POST quando o pagamento é aprovado. A API atualiza automaticamente o status do presente.
+
+### Mercado Pago (alternativa — checkout transparente)
+
+| Taxa | Valor |
+|------|-------|
+| PIX | ~0,99% |
+| Crédito à vista | ~4,98% |
+| Crédito 12x | ~14-17% |
+
+| Variável | Descrição | Obrigatório |
+|----------|-----------|-------------|
+| `MP_ACCESS_TOKEN` | Token de acesso à API do Mercado Pago | Sim |
+| `MP_WEBHOOK_SECRET` | Segredo para validar assinatura dos webhooks | Sim |
+| `MP_NOTIFICATION_URL` | URL pública que receberá notificações de pagamento | Sim |
 | `MP_PIX_EXPIRATION_MINUTES` | Tempo de expiração do QR Code PIX | Não (default: 30) |
 
-### Como obter as credenciais do Mercado Pago
+**Fluxo**: checkout transparente — o pagador não sai do site. QR Code PIX e dados do cartão são processados inline.
+
+#### Como obter as credenciais do Mercado Pago
 
 1. Acesse [mercadopago.com.br/developers](https://www.mercadopago.com.br/developers)
 2. Crie uma conta ou faça login
@@ -128,7 +178,30 @@ Use `debug` em desenvolvimento para ver detalhes de requests. Em produção, `in
 
 Em produção use `LOG_FORMAT=json` para logs estruturados compatíveis com sistemas de observabilidade (Datadog, Grafana Loki, etc.).
 
-## Exemplo completo (.env de produção)
+## Postman CLI
+
+| Variável | Descrição | Default | Obrigatório |
+|----------|-----------|---------|-------------|
+| `POSTMAN_API_KEY` | API Key para sincronizar collection/environment com o Postman Cloud | — | Não* |
+
+*Obrigatório apenas para `make postman-push`. Não é usado pela aplicação Go.
+
+### Como gerar a API Key
+
+1. Acesse [go.postman.co/settings/me/api-keys](https://go.postman.co/settings/me/api-keys)
+2. Clique em **Generate API Key**
+3. Dê um nome (ex: `wedding-api-ci`)
+4. Copie a chave (formato `PMAK-...`) e cole no `.env`:
+
+```
+POSTMAN_API_KEY=PMAK-xxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+O CI do GitHub Actions usa essa mesma chave via secret do repositório (não lê do `.env`).
+
+## Exemplos completos (.env de produção)
+
+### Com InfinitePay
 
 ```bash
 SERVER_PORT=8080
@@ -143,6 +216,33 @@ SEED_WEDDING_DATE=2026-07-07
 SEED_ADMIN_EMAIL=admin@manurafa.com.br
 SEED_ADMIN_PASSWORD=<senha segura gerada>
 
+PAYMENT_PROVIDER=infinitepay
+IP_HANDLE=manu-rafa
+IP_REDIRECT_URL=https://manurafa.com.br/obrigado
+IP_WEBHOOK_URL=https://api.manurafa.com.br/api/v1/payments/webhook
+
+CORS_ALLOWED_ORIGINS=https://manurafa.com.br,https://www.manurafa.com.br
+
+LOG_LEVEL=info
+LOG_FORMAT=json
+```
+
+### Com Mercado Pago
+
+```bash
+SERVER_PORT=8080
+DATABASE_PATH=/var/data/wedding.db
+
+JWT_SECRET=<valor gerado com openssl rand -base64 32>
+JWT_EXPIRATION_HOURS=12
+
+SEED_WEDDING_SLUG=manu-rafa
+SEED_WEDDING_TITLE=Casamento Manoela & Rafael
+SEED_WEDDING_DATE=2026-07-07
+SEED_ADMIN_EMAIL=admin@manurafa.com.br
+SEED_ADMIN_PASSWORD=<senha segura gerada>
+
+PAYMENT_PROVIDER=mercadopago
 MP_ACCESS_TOKEN=APP_USR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 MP_WEBHOOK_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 MP_NOTIFICATION_URL=https://api.manurafa.com.br/api/v1/payments/webhook

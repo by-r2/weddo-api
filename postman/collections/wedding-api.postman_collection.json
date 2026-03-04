@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "mr-wedding-api",
-    "description": "API multi-tenant para sites de casamento.\n\n## Setup\n\n1. Importe esta collection\n2. Importe o environment `mr-wedding-api.postman_environment.json`\n3. Rode o servidor: `make run`\n4. Execute **Admin > Login** para popular `token` e `weddingId` automaticamente\n5. Pronto — todas as requests usarão as variáveis automaticamente\n\n## Variáveis\n\n| Variável | Preenchida por | Uso |\n|----------|---------------|-----|\n| `baseUrl` | Environment | Base URL do servidor |\n| `token` | Login (auto) | Bearer token JWT |\n| `weddingId` | Login (auto) | UUID do tenant para endpoints públicos |\n| `invitationId` | Criar Convite (auto) | ID do último convite criado |\n| `guestId` | Listar Convidados (auto) | ID do primeiro convidado na lista |\n| `giftId` | Criar Presente (auto) | ID do último presente criado |\n| `paymentId` | Comprar Presente (auto) | ID do último pagamento criado |",
+    "name": "wedding-api",
+    "description": "API multi-tenant para sites de casamento.\n\n## Setup\n\n1. Importe esta collection\n2. Importe o environment `local.postman_environment.json`\n3. Rode o servidor: `make run`\n4. Execute **admin > login** para popular `token` e `weddingId` automaticamente\n5. Pronto — todas as requests usarão as variáveis automaticamente\n\n## Variáveis\n\n| Variável | Preenchida por | Uso |\n|----------|---------------|-----|\n| `baseUrl` | Environment | Base URL do servidor |\n| `token` | login (auto) | Bearer token JWT |\n| `weddingId` | login (auto) | UUID do tenant para endpoints públicos |\n| `invitationId` | create-invitation (auto) | ID do último convite criado |\n| `guestId` | list-guests (auto) | ID do primeiro convidado na lista |\n| `giftId` | create-gift (auto) | ID do último presente criado |\n| `paymentId` | purchase-pix (auto) | ID do último pagamento criado |",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -17,10 +17,10 @@
   "variable": [],
   "item": [
     {
-      "name": "Health",
+      "name": "health",
       "item": [
         {
-          "name": "Health Check",
+          "name": "health-check",
           "request": {
             "auth": { "type": "noauth" },
             "method": "GET",
@@ -52,13 +52,13 @@
       "description": "Endpoint de monitoramento."
     },
     {
-      "name": "Admin",
+      "name": "admin",
       "item": [
         {
-          "name": "Auth",
+          "name": "auth",
           "item": [
             {
-              "name": "Login",
+              "name": "login",
               "request": {
                 "auth": { "type": "noauth" },
                 "method": "POST",
@@ -99,10 +99,10 @@
           ]
         },
         {
-          "name": "Dashboard",
+          "name": "dashboard",
           "item": [
             {
-              "name": "Dashboard",
+              "name": "get-dashboard",
               "request": {
                 "method": "GET",
                 "header": [],
@@ -132,10 +132,10 @@
           ]
         },
         {
-          "name": "Invitations",
+          "name": "invitations",
           "item": [
             {
-              "name": "Criar Convite",
+              "name": "create-invitation",
               "request": {
                 "method": "POST",
                 "header": [
@@ -173,7 +173,7 @@
               ]
             },
             {
-              "name": "Listar Convites",
+              "name": "list-invitations",
               "request": {
                 "method": "GET",
                 "header": [],
@@ -205,7 +205,7 @@
               ]
             },
             {
-              "name": "Detalhar Convite",
+              "name": "get-invitation",
               "request": {
                 "method": "GET",
                 "header": [],
@@ -229,7 +229,7 @@
               ]
             },
             {
-              "name": "Atualizar Convite",
+              "name": "update-invitation",
               "request": {
                 "method": "PUT",
                 "header": [
@@ -259,7 +259,7 @@
               ]
             },
             {
-              "name": "Adicionar Convidado ao Convite",
+              "name": "add-guest-to-invitation",
               "request": {
                 "method": "POST",
                 "header": [
@@ -293,7 +293,7 @@
               ]
             },
             {
-              "name": "Remover Convite",
+              "name": "delete-invitation",
               "request": {
                 "method": "DELETE",
                 "header": [],
@@ -320,10 +320,10 @@
           "description": "CRUD de convites. Cada convite agrupa convidados (família, casal, etc.)."
         },
         {
-          "name": "Guests",
+          "name": "guests",
           "item": [
             {
-              "name": "Listar Convidados",
+              "name": "list-guests",
               "request": {
                 "method": "GET",
                 "header": [],
@@ -358,7 +358,7 @@
               ]
             },
             {
-              "name": "Detalhar Convidado",
+              "name": "get-guest",
               "request": {
                 "method": "GET",
                 "header": [],
@@ -381,7 +381,7 @@
               ]
             },
             {
-              "name": "Atualizar Convidado",
+              "name": "update-guest",
               "request": {
                 "method": "PUT",
                 "header": [
@@ -411,7 +411,7 @@
               ]
             },
             {
-              "name": "Remover Convidado",
+              "name": "delete-guest",
               "request": {
                 "method": "DELETE",
                 "header": [],
@@ -437,10 +437,10 @@
           "description": "Gerenciamento individual de convidados."
         },
         {
-          "name": "Gifts",
+          "name": "gifts",
           "item": [
             {
-              "name": "Criar Presente",
+              "name": "create-gift",
               "request": {
                 "method": "POST",
                 "header": [
@@ -474,7 +474,7 @@
               ]
             },
             {
-              "name": "Listar Presentes (Admin)",
+              "name": "list-gifts",
               "request": {
                 "method": "GET",
                 "header": [],
@@ -505,7 +505,7 @@
               ]
             },
             {
-              "name": "Detalhar Presente",
+              "name": "get-gift",
               "request": {
                 "method": "GET",
                 "header": [],
@@ -528,7 +528,7 @@
               ]
             },
             {
-              "name": "Atualizar Presente",
+              "name": "update-gift",
               "request": {
                 "method": "PUT",
                 "header": [
@@ -557,7 +557,7 @@
               ]
             },
             {
-              "name": "Remover Presente",
+              "name": "delete-gift",
               "request": {
                 "method": "DELETE",
                 "header": [],
@@ -583,10 +583,10 @@
           "description": "CRUD de presentes para a lista virtual."
         },
         {
-          "name": "Payments",
+          "name": "payments",
           "item": [
             {
-              "name": "Listar Pagamentos",
+              "name": "list-payments",
               "request": {
                 "method": "GET",
                 "header": [],
@@ -616,7 +616,7 @@
               ]
             },
             {
-              "name": "Detalhar Pagamento",
+              "name": "get-payment",
               "request": {
                 "method": "GET",
                 "header": [],
@@ -642,7 +642,7 @@
           "description": "Consulta de pagamentos (somente leitura para admin)."
         }
       ],
-      "description": "Endpoints protegidos por JWT. Rode **Login** primeiro para popular o token automaticamente.",
+      "description": "Endpoints protegidos por JWT. Rode **login** primeiro para popular o token automaticamente.",
       "auth": {
         "type": "bearer",
         "bearer": [
@@ -655,13 +655,13 @@
       }
     },
     {
-      "name": "Público",
+      "name": "public",
       "item": [
         {
-          "name": "RSVP",
+          "name": "rsvp",
           "item": [
             {
-              "name": "Confirmar Presença",
+              "name": "confirm-rsvp",
               "request": {
                 "method": "POST",
                 "header": [
@@ -696,7 +696,7 @@
               ]
             },
             {
-              "name": "Consultar Convite",
+              "name": "lookup-invitation",
               "request": {
                 "method": "GET",
                 "header": [],
@@ -729,10 +729,10 @@
           "description": "Confirmação de presença. Não requer autenticação."
         },
         {
-          "name": "Gifts",
+          "name": "gifts",
           "item": [
             {
-              "name": "Listar Presentes (Público)",
+              "name": "list-gifts",
               "request": {
                 "method": "GET",
                 "header": [],
@@ -770,7 +770,7 @@
               ]
             },
             {
-              "name": "Detalhar Presente (Público)",
+              "name": "get-gift",
               "request": {
                 "method": "GET",
                 "header": [],
@@ -793,7 +793,7 @@
               ]
             },
             {
-              "name": "Comprar Presente (PIX)",
+              "name": "purchase-pix",
               "request": {
                 "method": "POST",
                 "header": [
@@ -801,14 +801,14 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"payer_name\": \"Tia Maria\",\n  \"payer_email\": \"maria@email.com\",\n  \"message\": \"Felicidades ao casal!\",\n  \"payment_method\": \"pix\"\n}"
+                  "raw": "{\n  \"payer_name\": \"Tia Maria\",\n  \"payer_email\": \"maria@email.com\",\n  \"message\": \"Felicidades ao casal!\",\n  \"payment_method\": \"pix\",\n  \"redirect_url\": \"https://manurafa.com.br/obrigado\"\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/w/{{weddingId}}/gifts/{{giftId}}/purchase",
                   "host": ["{{baseUrl}}"],
                   "path": ["w", "{{weddingId}}", "gifts", "{{giftId}}", "purchase"]
                 },
-                "description": "Inicia pagamento via PIX. Retorna QR code e código copia-e-cola.\n\nRequer `MP_ACCESS_TOKEN` configurado no servidor."
+                "description": "Inicia pagamento via PIX.\n\n- **InfinitePay**: retorna `checkout_url` (redirecionar o usuário)\n- **Mercado Pago**: retorna `qr_code` e `qr_code_base64` (exibir inline)\n\nO campo `redirect_url` é opcional (sobrescreve `IP_REDIRECT_URL` global, apenas InfinitePay).\n\nRequer `PAYMENT_PROVIDER` configurado no servidor."
               },
               "event": [
                 {
@@ -822,7 +822,9 @@
                       "if (pm.response.code === 201) {",
                       "  const body = pm.response.json();",
                       "  pm.environment.set('paymentId', body.payment_id);",
-                      "  pm.test('Tem QR code', () => pm.expect(body.qr_code).to.be.a('string'));",
+                      "  pm.test('Tem checkout_url ou qr_code', () => {",
+                      "    pm.expect(body.checkout_url || body.qr_code).to.be.a('string');",
+                      "  });",
                       "}"
                     ],
                     "type": "text/javascript"
@@ -831,7 +833,7 @@
               ]
             },
             {
-              "name": "Comprar Presente (Cartão)",
+              "name": "purchase-card",
               "request": {
                 "method": "POST",
                 "header": [
@@ -846,7 +848,7 @@
                   "host": ["{{baseUrl}}"],
                   "path": ["w", "{{weddingId}}", "gifts", "{{giftId}}", "purchase"]
                 },
-                "description": "Inicia pagamento via cartão de crédito.\n\nO `card_token` é gerado pelo MercadoPago.js no frontend. Em sandbox, use tokens de teste do Mercado Pago."
+                "description": "Inicia pagamento via cartão de crédito.\n\n- **Mercado Pago**: `card_token` é gerado pelo MercadoPago.js no frontend. Em sandbox, use tokens de teste.\n- **InfinitePay**: `card_token` e `payment_method_id` são ignorados — o checkout de cartão acontece no redirect.\n\nRequer `PAYMENT_PROVIDER` configurado no servidor."
               },
               "event": [
                 {
@@ -870,10 +872,10 @@
           "description": "Lista de presentes e fluxo de compra. Não requer autenticação."
         },
         {
-          "name": "Payments",
+          "name": "payments",
           "item": [
             {
-              "name": "Status do Pagamento",
+              "name": "get-payment-status",
               "request": {
                 "method": "GET",
                 "header": [],
@@ -907,10 +909,43 @@
       "auth": { "type": "noauth" }
     },
     {
-      "name": "Webhook",
+      "name": "webhook",
       "item": [
         {
-          "name": "Mercado Pago Webhook",
+          "name": "webhook-infinitepay",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoice_slug\": \"abc123\",\n  \"amount\": 35000,\n  \"paid_amount\": 35000,\n  \"installments\": 1,\n  \"capture_method\": \"pix\",\n  \"transaction_nsu\": \"uuid-da-transacao\",\n  \"order_nsu\": \"{{paymentId}}\",\n  \"receipt_url\": \"https://comprovante.com/123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/webhook",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "webhook"]
+            },
+            "description": "Simula uma notificação da InfinitePay.\n\nEm produção, este endpoint é chamado automaticamente pela InfinitePay quando o pagamento é aprovado.\n\n- `order_nsu`: ID do pagamento no nosso sistema (payment_id)\n- `paid_amount`: valor pago em centavos\n\nUse quando `PAYMENT_PROVIDER=infinitepay`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 ou 503', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 503]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "webhook-mercadopago",
           "request": {
             "auth": { "type": "noauth" },
             "method": "POST",
@@ -926,7 +961,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["payments", "webhook"]
             },
-            "description": "Simula uma notificação do Mercado Pago.\n\nEm produção, este endpoint é chamado automaticamente pelo Mercado Pago. O `data.id` é o ID do pagamento no Mercado Pago (provider_id)."
+            "description": "Simula uma notificação do Mercado Pago.\n\nEm produção, este endpoint é chamado automaticamente pelo Mercado Pago.\n\n- `data.id`: ID do pagamento no Mercado Pago (provider_id)\n\nUse quando `PAYMENT_PROVIDER=mercadopago`."
           },
           "event": [
             {
@@ -943,7 +978,7 @@
           ]
         }
       ],
-      "description": "Webhooks de provedores externos. Não requerem JWT — validação via assinatura do provider."
+      "description": "Webhooks de provedores de pagamento. Não requerem JWT. O formato do payload depende do `PAYMENT_PROVIDER` configurado (InfinitePay ou Mercado Pago)."
     }
   ]
 }
