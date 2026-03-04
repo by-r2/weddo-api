@@ -30,7 +30,7 @@ infra → dto
 
 - Todas as tabelas de negócio possuem `wedding_id`
 - Repositórios sempre recebem `weddingID` como parâmetro
-- Endpoints públicos: tenant via slug na URL (`/api/v1/w/{slug}/...`)
+- Endpoints públicos: tenant via UUID na URL (`/api/v1/w/{weddingId}/...`)
 - Endpoints admin: tenant via JWT claims (`wedding_id`)
 - Nunca existe query sem filtro de tenant (exceto busca de wedding)
 
@@ -38,14 +38,14 @@ infra → dto
 
 ```
 cmd/api/main.go                  # entrypoint
-internal/domain/entity/          # entidades (inclui Wedding)
+internal/domain/entity/          # entidades + erros de domínio
 internal/domain/repository/      # interfaces de repositório
 internal/usecase/                # casos de uso (um subpacote por contexto)
 internal/dto/                    # request/response structs
-internal/infra/database/         # implementação dos repositórios
+internal/infra/database/         # conexão SQLite + implementação dos repositórios
 internal/infra/gateway/          # clientes externos (Mercado Pago)
-internal/infra/web/handler/      # handlers HTTP
-internal/infra/web/middleware/   # middlewares (auth, tenant, logger)
-internal/infra/config/           # configuração
-migrations/                      # SQL migrations
+internal/infra/web/handler/      # handlers HTTP + helpers (response, validator)
+internal/infra/web/middleware/   # auth, tenant, logger, recovery
+internal/infra/config/           # configuração via env
+migrations/                      # SQL migrations (up/down)
 ```

@@ -6,44 +6,51 @@ Cada casamento é um tenant isolado. O primeiro tenant é o casamento **Manoela 
 
 ## Stack
 
-| Componente | Tecnologia |
-|------------|------------|
-| Linguagem | Go 1.23+ |
-| Arquitetura | Clean Architecture, multi-tenant |
-| Router HTTP | [chi](https://github.com/go-chi/chi) |
-| Banco de dados | SQLite (via [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)) |
-| Migrações | [golang-migrate](https://github.com/golang-migrate/migrate) |
-| Configuração | Variáveis de ambiente (envconfig) |
-| Autenticação admin | JWT ([golang-jwt](https://github.com/golang-jwt/jwt)) |
-| Validação | [go-playground/validator](https://github.com/go-playground/validator) |
-| Pagamentos | [Mercado Pago SDK Go](https://github.com/mercadopago/sdk-go) (PIX + cartão) |
-| Logging | `log/slog` (stdlib) |
-| Testes | `testing` (stdlib) + [testify](https://github.com/stretchr/testify) |
+| Componente | Tecnologia | Versão |
+|------------|------------|--------|
+| Linguagem | Go | 1.26 |
+| Arquitetura | Clean Architecture, multi-tenant | — |
+| Router HTTP | [chi](https://github.com/go-chi/chi) | v5.2.5 |
+| CORS | [go-chi/cors](https://github.com/go-chi/cors) | v1.2.2 |
+| Banco de dados | SQLite (via [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)) | v1.14.34 |
+| Migrações | [golang-migrate](https://github.com/golang-migrate/migrate) | v4.19.1 |
+| Configuração | [envconfig](https://github.com/kelseyhightower/envconfig) + [godotenv](https://github.com/joho/godotenv) | v1.4.0 / v1.5.1 |
+| Autenticação admin | JWT ([golang-jwt](https://github.com/golang-jwt/jwt)) | v5.3.1 |
+| Validação | [go-playground/validator](https://github.com/go-playground/validator) | v10.30.1 |
+| Pagamentos | [Mercado Pago SDK Go](https://github.com/mercadopago/sdk-go) (PIX + cartão) | — |
+| UUID | [google/uuid](https://github.com/google/uuid) | v1.6.0 |
+| Crypto | [golang.org/x/crypto](https://pkg.go.dev/golang.org/x/crypto) (bcrypt) | v0.48.0 |
+| Logging | `log/slog` (stdlib) | — |
+| Testes | `testing` (stdlib) + [testify](https://github.com/stretchr/testify) | v1.11.1 |
 
 ## Quick Start
 
 ```bash
-cp .env.example .env
-make setup
-make run
+cp .env.example .env    # configurar variáveis (JWT_SECRET, seed, etc.)
+make setup              # go mod tidy + copia .env se não existir
+make run                # sobe o servidor (carrega .env automaticamente)
 ```
 
-O servidor sobe em `http://localhost:8080`.
+O servidor sobe em `http://localhost:8080`. O arquivo `.env` é carregado automaticamente via godotenv.
 
 ## Estrutura do Projeto
 
 ```
-├── cmd/api/              # Entrypoint
+├── cmd/api/              # Entrypoint (bootstrap, graceful shutdown)
 ├── internal/
 │   ├── domain/           # Entidades e interfaces de repositório
+│   │   ├── entity/       # Wedding, erros de domínio (futuro: Invitation, Guest, Gift, Payment)
+│   │   └── repository/   # Interfaces (WeddingRepository, etc.)
 │   ├── usecase/          # Casos de uso (regras de negócio)
 │   ├── dto/              # Objetos de transferência (request/response)
 │   └── infra/
-│       ├── database/     # Repositórios SQLite
-│       ├── gateway/      # Clientes externos (Mercado Pago)
-│       ├── web/          # Handlers, middlewares, router
-│       └── config/       # Configuração
-├── migrations/           # SQL migrations
+│       ├── database/     # Conexão SQLite, migrações, repositórios
+│       ├── gateway/      # Clientes externos (Mercado Pago — futuro)
+│       ├── web/
+│       │   ├── handler/  # Handlers HTTP + helpers (response, validator)
+│       │   └── middleware/ # Auth JWT, TenantResolver, Logger, Recovery
+│       └── config/       # Leitura de env vars
+├── migrations/           # SQL migrations (up/down)
 ├── docs/                 # Documentação detalhada
 └── .cursor/rules/        # Convenções para o Cursor AI
 ```
