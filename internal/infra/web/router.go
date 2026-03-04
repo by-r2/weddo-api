@@ -17,6 +17,7 @@ import (
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/invitation"
 	paymentuc "github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/payment"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/rsvp"
+	sheetsuc "github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/sheets"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/wedding"
 )
 
@@ -27,6 +28,7 @@ type RouterDeps struct {
 	GuestUC      *guest.UseCase
 	GiftUC       *giftuc.UseCase
 	PaymentUC    *paymentuc.UseCase
+	SheetsUC     *sheetsuc.UseCase
 	WeddingRepo  repository.WeddingRepository
 	JWTSecret    string
 	CORSOrigins  string
@@ -55,6 +57,7 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 	guestHandler := handler.NewGuestHandler(deps.GuestUC)
 	giftHandler := handler.NewGiftHandler(deps.GiftUC)
 	paymentHandler := handler.NewPaymentHandler(deps.PaymentUC)
+	sheetsHandler := handler.NewSheetsHandler(deps.SheetsUC)
 	dashHandler := handler.NewDashboardHandler(deps.GuestUC, deps.GiftUC)
 
 	r.Route("/api/v1", func(r chi.Router) {
@@ -77,6 +80,10 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 		// Webhook (sem auth — validação via assinatura do provider)
 		r.With(httprate.LimitByIP(30, 1*time.Minute)).
 			Post("/payments/webhook", paymentHandler.Webhook)
+
+		// Callback OAuth do Google Sheets (sem JWT; tenant resolvido via state assinado)
+		r.With(httprate.LimitByIP(20, 1*time.Minute)).
+			Get("/sheets/connect/callback", sheetsHandler.ConnectCallback)
 
 		// Autenticação — limite restrito para mitigar brute-force
 		r.With(httprate.LimitByIP(10, 1*time.Minute)).
@@ -115,6 +122,12 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 			r.Route("/payments", func(r chi.Router) {
 				r.Get("/", paymentHandler.ListAdmin)
 				r.Get("/{id}", paymentHandler.GetAdmin)
+			})
+
+			r.Route("/sheets", func(r chi.Router) {
+				r.Post("/connect/start", sheetsHandler.ConnectStart)
+				r.Post("/push", sheetsHandler.Push)
+				r.Post("/pull", sheetsHandler.Pull)
 			})
 		})
 	})

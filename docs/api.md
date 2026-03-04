@@ -361,6 +361,78 @@ GET /api/v1/admin/payments                # listar (?page=1&per_page=20&status=a
 GET /api/v1/admin/payments/{id}           # detalhar
 ```
 
+### Google Sheets (sincronização manual)
+
+```
+POST /api/v1/admin/sheets/connect/start   # inicia OAuth e retorna auth_url
+POST /api/v1/admin/sheets/push            # exporta banco -> planilha
+POST /api/v1/admin/sheets/pull            # importa planilha -> banco
+GET  /api/v1/sheets/connect/callback      # callback OAuth do Google
+```
+
+#### Iniciar conexão OAuth
+
+`POST /api/v1/admin/sheets/connect/start`
+
+**Response 200:**
+
+```json
+{
+  "auth_url": "https://accounts.google.com/o/oauth2/auth?..."
+}
+```
+
+> O frontend/admin deve redirecionar o usuário para `auth_url`.
+
+#### Push (banco para planilha)
+
+`POST /api/v1/admin/sheets/push`
+
+**Response 200:**
+
+```json
+{
+  "invitations": 42,
+  "guests": 160,
+  "gifts": 28,
+  "payments": 19
+}
+```
+
+> Cada tenant usa sua própria planilha (conectada via OAuth).
+
+#### Pull (planilha para banco)
+
+`POST /api/v1/admin/sheets/pull`
+
+**Response 200:**
+
+```json
+{
+  "invitations_updated": 3,
+  "invitations_created": 1,
+  "guests_updated": 8,
+  "guests_created": 2,
+  "skipped": 4
+}
+```
+
+> O pull atualiza/cria apenas dados de **convites** e **convidados**. Abas de presentes/pagamentos são somente exportação.
+
+#### Callback OAuth
+
+`GET /api/v1/sheets/connect/callback?code=...&state=...`
+
+**Response 200:**
+
+```json
+{
+  "wedding_id": "uuid",
+  "spreadsheet_id": "1AbCdEf...",
+  "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1AbCdEf.../edit"
+}
+```
+
 ---
 
 ## Padrão de Resposta de Erro
@@ -378,7 +450,7 @@ GET /api/v1/admin/payments/{id}           # detalhar
 | 404 | Recurso não encontrado ou wedding_id inválido |
 | 409 | Conflito (ex: presença já confirmada, presente indisponível) |
 | 500 | Erro interno |
-| 503 | Serviço indisponível (ex: `PAYMENT_PROVIDER` não configurado) |
+| 503 | Serviço indisponível (ex: `PAYMENT_PROVIDER` ou Google Sheets não configurado) |
 
 ---
 

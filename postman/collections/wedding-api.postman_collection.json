@@ -640,6 +640,95 @@
             }
           ],
           "description": "Consulta de pagamentos (somente leitura para admin)."
+        },
+        {
+          "name": "sheets",
+          "item": [
+            {
+              "name": "connect-sheets-start",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/sheets/connect/start",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "sheets", "connect", "start"]
+                },
+                "description": "Inicia OAuth com Google e retorna auth_url. Abra o URL no navegador para concluir a conexão do tenant."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200 ou 503', () => {",
+                      "  pm.expect(pm.response.code).to.be.oneOf([200, 503]);",
+                      "});",
+                      "if (pm.response.code === 200) {",
+                      "  pm.test('Tem auth_url', () => {",
+                      "    pm.expect(pm.response.json().auth_url).to.be.a('string');",
+                      "  });",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "push-sheets",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/sheets/push",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "sheets", "push"]
+                },
+                "description": "Exporta os dados do tenant para o Google Sheets (abas de convites, convidados, presentes e pagamentos)."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200 ou 503', () => {",
+                      "  pm.expect(pm.response.code).to.be.oneOf([200, 503]);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "pull-sheets",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/sheets/pull",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "sheets", "pull"]
+                },
+                "description": "Importa alterações da planilha para o banco (convites e convidados)."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200 ou 503', () => {",
+                      "  pm.expect(pm.response.code).to.be.oneOf([200, 503]);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
+            }
+          ],
+          "description": "Sincronização manual bidirecional com Google Sheets."
         }
       ],
       "description": "Endpoints protegidos por JWT. Rode **login** primeiro para popular o token automaticamente.",

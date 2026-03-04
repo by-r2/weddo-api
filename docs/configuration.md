@@ -192,6 +192,48 @@ Use `debug` em desenvolvimento para ver detalhes de requests. Em produção, `in
 
 Em produção use `LOG_FORMAT=json` para logs estruturados compatíveis com sistemas de observabilidade (Datadog, Grafana Loki, etc.).
 
+## Google Sheets OAuth (por tenant)
+
+| Variável | Descrição | Default | Obrigatório |
+|----------|-----------|---------|-------------|
+| `GOOGLE_OAUTH_CLIENT_ID` | Client ID do OAuth app Google | — | Sim* |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | Client secret do OAuth app Google | — | Sim* |
+| `GOOGLE_OAUTH_REDIRECT_URL` | URL de callback OAuth | `http://localhost:8080/api/v1/sheets/connect/callback` | Sim* |
+| `GOOGLE_OAUTH_TOKEN_CIPHER_KEY` | Chave base64 (32 bytes) para criptografar tokens | — | Sim* |
+| `GOOGLE_OAUTH_STATE_SECRET` | Segredo de assinatura do estado OAuth | usa `JWT_SECRET` se vazio | Não |
+
+*Obrigatórios para habilitar integração Google Sheets.
+
+### Como configurar
+
+1. Crie um OAuth App no Google Cloud
+2. Habilite a **Google Sheets API**
+3. Cadastre a redirect URI:
+   - `http://localhost:8080/api/v1/sheets/connect/callback` (dev)
+   - `https://api.seudominio.com/api/v1/sheets/connect/callback` (produção)
+4. Configure no `.env`:
+
+```bash
+GOOGLE_OAUTH_CLIENT_ID=xxxxxxxx.apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=xxxxxxxx
+GOOGLE_OAUTH_REDIRECT_URL=http://localhost:8080/api/v1/sheets/connect/callback
+GOOGLE_OAUTH_TOKEN_CIPHER_KEY=<openssl rand -base64 32>
+GOOGLE_OAUTH_STATE_SECRET=<opcional>
+```
+
+### Fluxo de uso
+
+1. `POST /api/v1/admin/sheets/connect/start` (com JWT admin) -> retorna `auth_url`
+2. Admin abre `auth_url`, autoriza no Google
+3. Google chama callback `GET /api/v1/sheets/connect/callback`
+4. A API cria uma planilha no Drive do próprio cliente e salva tokens OAuth criptografados por tenant
+5. `POST /api/v1/admin/sheets/push` e `POST /api/v1/admin/sheets/pull` passam a usar essa conexão
+
+### Multi-tenancy no Sheets
+
+Cada wedding mantém sua **própria conexão OAuth** e **sua própria planilha** no Google Drive do cliente.
+Não há compartilhamento de credenciais nem de planilha entre tenants.
+
 ## Postman CLI
 
 | Variável | Descrição | Default | Obrigatório |
@@ -235,6 +277,12 @@ IP_HANDLE=manu-rafa
 IP_REDIRECT_URL=https://manurafa.com.br/obrigado
 IP_WEBHOOK_URL=https://api.manurafa.com.br/api/v1/payments/webhook
 
+# Google Sheets OAuth por tenant
+GOOGLE_OAUTH_CLIENT_ID=xxxxxxxx.apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=xxxxxxxx
+GOOGLE_OAUTH_REDIRECT_URL=https://api.manurafa.com.br/api/v1/sheets/connect/callback
+GOOGLE_OAUTH_TOKEN_CIPHER_KEY=<openssl rand -base64 32>
+
 CORS_ALLOWED_ORIGINS=https://manurafa.com.br,https://www.manurafa.com.br
 
 LOG_LEVEL=info
@@ -261,6 +309,12 @@ MP_ACCESS_TOKEN=APP_USR-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 MP_WEBHOOK_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 MP_NOTIFICATION_URL=https://api.manurafa.com.br/api/v1/payments/webhook
 MP_PIX_EXPIRATION_MINUTES=30
+
+# Google Sheets OAuth por tenant
+GOOGLE_OAUTH_CLIENT_ID=xxxxxxxx.apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=xxxxxxxx
+GOOGLE_OAUTH_REDIRECT_URL=https://api.manurafa.com.br/api/v1/sheets/connect/callback
+GOOGLE_OAUTH_TOKEN_CIPHER_KEY=<openssl rand -base64 32>
 
 CORS_ALLOWED_ORIGINS=https://manurafa.com.br,https://www.manurafa.com.br
 

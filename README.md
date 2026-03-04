@@ -22,6 +22,7 @@ Cada casamento é um tenant isolado. O primeiro tenant é o casamento **Manoela 
 | Crypto | [golang.org/x/crypto](https://pkg.go.dev/golang.org/x/crypto) (bcrypt) | v0.48.0 |
 | Rate Limiting | [httprate](https://github.com/go-chi/httprate) | v0.15.0 |
 | Logging | `log/slog` (stdlib) — text (dev) / JSON (prod) | — |
+| Integração planilha | [Google Sheets API](https://pkg.go.dev/google.golang.org/api/sheets/v4) | v4 |
 | Testes | `testing` (stdlib) + [testify](https://github.com/stretchr/testify) | v1.11.1 |
 | Container | Docker (multi-stage build) | — |
 | CI | GitHub Actions (build, vet, test, Postman push) | — |
@@ -69,9 +70,10 @@ make docker-stop        # para e remove o container
 │       ├── config/       # Leitura de env vars
 │       ├── database/     # Conexão PostgreSQL, migrações, repositórios
 │       ├── gateway/      # InfinitePay + Mercado Pago (PIX + cartão)
+│       ├── sheets/       # Cliente Google Sheets (push/pull)
 │       ├── seed/         # Dados fictícios para desenvolvimento
 │       └── web/
-│           ├── handler/  # auth, rsvp, invitation, guest, gift, payment, dashboard
+│           ├── handler/  # auth, rsvp, invitation, guest, gift, payment, dashboard, sheets
 │           └── middleware/ # Auth JWT, TenantResolver, Logger, Recovery
 ├── migrations/           # SQL migrations (001-005)
 ├── postman/              # Collection e environment do Postman
@@ -99,6 +101,15 @@ A pasta `postman/` é um workspace local do Postman. Para usar:
 - **App/Web**: importe `postman/collections/wedding-api.postman_collection.json` e `postman/environments/local.postman_environment.json`
 
 Ajuste `adminEmail` e `adminPassword` no environment, execute **admin > login** e todas as variáveis (`token`, `weddingId`, etc.) serão populadas automaticamente.
+
+### Google Sheets
+
+Integração por tenant via OAuth:
+
+1. Configure `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_OAUTH_REDIRECT_URL` e `GOOGLE_OAUTH_TOKEN_CIPHER_KEY` no `.env`
+2. Faça login admin
+3. Execute `admin > sheets > connect-sheets-start` e abra `auth_url`
+4. Após callback, use `admin > sheets > push-sheets` e `pull-sheets`
 
 ### CI
 

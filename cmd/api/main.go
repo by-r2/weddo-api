@@ -16,13 +16,16 @@ import (
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/config"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/database"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/gateway"
+	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/security"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/seed"
+	infraSheets "github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/sheets"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/web"
 	giftuc "github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/gift"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/guest"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/invitation"
 	paymentuc "github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/payment"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/rsvp"
+	sheetsuc "github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/sheets"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/wedding"
 )
 
@@ -66,12 +69,14 @@ func main() {
 	guestRepo := database.NewGuestRepository(db)
 	giftRepo := database.NewGiftRepository(db)
 	paymentRepo := database.NewPaymentRepository(db)
+	googleIntegrationRepo := database.NewGoogleIntegrationRepository(db)
 
 	weddingUC := wedding.NewUseCase(weddingRepo, cfg.JWTSecret, cfg.JWTExpirationHours)
 	rsvpUC := rsvp.NewUseCase(guestRepo, invitationRepo)
 	invitationUC := invitation.NewUseCase(invitationRepo, guestRepo)
 	guestUC := guest.NewUseCase(guestRepo, invitationRepo)
 	giftUC := giftuc.NewUseCase(giftRepo, paymentRepo)
+	var sheetsUC *sheetsuc.UseCase
 
 	var paymentUC *paymentuc.UseCase
 	switch strings.ToLower(cfg.PaymentProvider) {
@@ -112,6 +117,33 @@ func main() {
 		}
 	}
 
+	if cfg.GoogleOAuthClientID != "" && cfg.GoogleOAuthClientSecret != "" && cfg.GoogleOAuthRedirectURL != "" && cfg.GoogleOAuthTokenCipherKey != "" {
+		oauthProvider := infraSheets.NewOAuthProvider(cfg.GoogleOAuthClientID, cfg.GoogleOAuthClientSecret, cfg.GoogleOAuthRedirectURL)
+		tokenCipher, err := security.NewCipher(cfg.GoogleOAuthTokenCipherKey)
+		if err != nil {
+			slog.Error("failed to init google oauth token cipher", "error", err)
+			os.Exit(1)
+		}
+		stateSecret := cfg.GoogleOAuthStateSecret
+		if stateSecret == "" {
+			stateSecret = cfg.JWTSecret
+		}
+		sheetsUC = sheetsuc.NewUseCase(
+			invitationRepo,
+			guestRepo,
+			giftRepo,
+			paymentRepo,
+			weddingRepo,
+			googleIntegrationRepo,
+			oauthProvider,
+			tokenCipher,
+			stateSecret,
+		)
+		slog.Info("google sheets oauth sync enabled")
+	} else {
+		slog.Warn("google sheets oauth sync disabled — configure GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, GOOGLE_OAUTH_REDIRECT_URL and GOOGLE_OAUTH_TOKEN_CIPHER_KEY")
+	}
+
 	if *seedDev {
 		w, err := weddingRepo.FindBySlug(context.Background(), cfg.SeedWeddingSlug)
 		if err != nil {
@@ -131,6 +163,7 @@ func main() {
 		GuestUC:      guestUC,
 		GiftUC:       giftUC,
 		PaymentUC:    paymentUC,
+		SheetsUC:     sheetsUC,
 		WeddingRepo:  weddingRepo,
 		JWTSecret:    cfg.JWTSecret,
 		CORSOrigins:  cfg.CORSAllowedOrigins,
