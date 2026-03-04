@@ -37,10 +37,17 @@ func NewRawServiceFromTokenSource(ctx context.Context, ts oauth2.TokenSource) (*
 }
 
 func CreateSpreadsheet(ctx context.Context, service *gsheets.Service, title string) (id, url string, err error) {
+	tabs := []string{"Convites", "Convidados", "Presentes", "Pagamentos"}
+	sheets := make([]*gsheets.Sheet, len(tabs))
+	for i, name := range tabs {
+		sheets[i] = &gsheets.Sheet{
+			Properties: &gsheets.SheetProperties{Title: name},
+		}
+	}
+
 	resp, err := service.Spreadsheets.Create(&gsheets.Spreadsheet{
-		Properties: &gsheets.SpreadsheetProperties{
-			Title: title,
-		},
+		Properties: &gsheets.SpreadsheetProperties{Title: title},
+		Sheets:     sheets,
 	}).Context(ctx).Do()
 	if err != nil {
 		return "", "", fmt.Errorf("sheets.CreateSpreadsheet: %w", err)
