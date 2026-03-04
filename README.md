@@ -20,14 +20,17 @@ Cada casamento é um tenant isolado. O primeiro tenant é o casamento **Manoela 
 | Pagamentos | [Mercado Pago SDK Go](https://github.com/mercadopago/sdk-go) (PIX + cartão) | v1.8.0 |
 | UUID | [google/uuid](https://github.com/google/uuid) | v1.6.0 |
 | Crypto | [golang.org/x/crypto](https://pkg.go.dev/golang.org/x/crypto) (bcrypt) | v0.48.0 |
-| Logging | `log/slog` (stdlib) | — |
+| Rate Limiting | [httprate](https://github.com/go-chi/httprate) | v0.15.0 |
+| Logging | `log/slog` (stdlib) — text (dev) / JSON (prod) | — |
 | Testes | `testing` (stdlib) + [testify](https://github.com/stretchr/testify) | v1.11.1 |
+| Container | Docker (multi-stage build) | — |
 
 ## Quick Start
 
 ```bash
 cp .env.example .env    # preencher variáveis — ver docs/configuration.md
 make setup              # go mod tidy + copia .env se não existir
+make seed-dev           # (opcional) insere dados fictícios para dev
 make run                # sobe o servidor (carrega .env automaticamente)
 ```
 
@@ -42,6 +45,14 @@ Consulte [docs/configuration.md](docs/configuration.md) para instruções detalh
 
 O servidor sobe em `http://localhost:8080`. O arquivo `.env` é carregado automaticamente via godotenv.
 
+### Docker
+
+```bash
+make docker-build       # build da imagem
+make docker-run         # sobe container com .env e volume para dados
+make docker-stop        # para e remove o container
+```
+
 ## Estrutura do Projeto
 
 ```
@@ -53,14 +64,17 @@ O servidor sobe em `http://localhost:8080`. O arquivo `.env` é carregado automa
 │   ├── usecase/          # Casos de uso (wedding, rsvp, invitation, guest, gift, payment)
 │   ├── dto/              # Objetos de transferência (request/response)
 │   └── infra/
+│       ├── config/       # Leitura de env vars
 │       ├── database/     # Conexão SQLite, migrações, repositórios
 │       ├── gateway/      # Mercado Pago SDK (PIX + cartão)
-│       ├── web/
-│       │   ├── handler/  # auth, rsvp, invitation, guest, gift, payment, dashboard
-│       │   └── middleware/ # Auth JWT, TenantResolver, Logger, Recovery
-│       └── config/       # Leitura de env vars
+│       ├── seed/         # Dados fictícios para desenvolvimento
+│       └── web/
+│           ├── handler/  # auth, rsvp, invitation, guest, gift, payment, dashboard
+│           └── middleware/ # Auth JWT, TenantResolver, Logger, Recovery
 ├── migrations/           # SQL migrations (001-005)
+├── postman/              # Collection e environment do Postman
 ├── docs/                 # Documentação detalhada
+├── Dockerfile            # Multi-stage build
 └── .cursor/rules/        # Convenções para o Cursor AI
 ```
 

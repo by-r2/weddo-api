@@ -26,6 +26,7 @@ type Config struct {
 
 	CORSAllowedOrigins string `envconfig:"CORS_ALLOWED_ORIGINS" default:"*"`
 	LogLevel           string `envconfig:"LOG_LEVEL" default:"info"`
+	LogFormat          string `envconfig:"LOG_FORMAT" default:"text"`
 }
 
 func Load() (*Config, error) {

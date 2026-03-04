@@ -1,7 +1,9 @@
-.PHONY: build run test clean setup migrate-up migrate-down
+.PHONY: build run test clean setup migrate-up migrate-down seed-dev docker-build docker-run docker-stop
 
 BINARY=bin/api
 MAIN=cmd/api/main.go
+IMAGE=mr-wedding-api
+VERSION?=latest
 
 build:
 	CGO_ENABLED=1 go build -o $(BINARY) $(MAIN)
@@ -25,3 +27,19 @@ migrate-up:
 
 migrate-down:
 	go run $(MAIN) -migrate-down
+
+seed-dev:
+	CGO_ENABLED=1 go run $(MAIN) -seed-dev
+
+docker-build:
+	docker build -t $(IMAGE):$(VERSION) .
+
+docker-run:
+	docker run -d --name $(IMAGE) \
+		--env-file .env \
+		-p 8080:8080 \
+		-v $(PWD)/data:/app/data \
+		$(IMAGE):$(VERSION)
+
+docker-stop:
+	docker stop $(IMAGE) && docker rm $(IMAGE)

@@ -122,8 +122,11 @@ CORS_ALLOWED_ORIGINS=https://manurafa.com.br,https://www.manurafa.com.br
 | Variável | Descrição | Default | Obrigatório |
 |----------|-----------|---------|-------------|
 | `LOG_LEVEL` | Nível de log: `debug`, `info`, `warn`, `error` | `info` | Não |
+| `LOG_FORMAT` | Formato do log: `text` (legível) ou `json` (estruturado) | `text` | Não |
 
 Use `debug` em desenvolvimento para ver detalhes de requests. Em produção, `info` ou `warn`.
+
+Em produção use `LOG_FORMAT=json` para logs estruturados compatíveis com sistemas de observabilidade (Datadog, Grafana Loki, etc.).
 
 ## Exemplo completo (.env de produção)
 
@@ -148,4 +151,5 @@ MP_PIX_EXPIRATION_MINUTES=30
 CORS_ALLOWED_ORIGINS=https://manurafa.com.br,https://www.manurafa.com.br
 
 LOG_LEVEL=info
+LOG_FORMAT=json
 ```

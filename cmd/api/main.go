@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/config"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/database"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/gateway"
+	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/seed"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/web"
 	giftuc "github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/gift"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/usecase/guest"
@@ -25,7 +27,19 @@ import (
 )
 
 func main() {
-	_ = godotenv.Load() // carrega .env se existir, ignora erro se não existir
+	healthCheck := flag.Bool("health", false, "executa health check e encerra")
+	seedDev := flag.Bool("seed-dev", false, "insere dados fictícios para desenvolvimento")
+	flag.Parse()
+
+	if *healthCheck {
+		resp, err := http.Get("http://localhost:8080/api/v1/health")
+		if err != nil || resp.StatusCode != http.StatusOK {
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
+	_ = godotenv.Load()
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -33,7 +47,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLogger(cfg.LogLevel)
+	setupLogger(cfg.LogLevel, cfg.LogFormat)
 
 	db, err := database.Open(cfg.DatabasePath)
 	if err != nil {
@@ -75,6 +89,18 @@ func main() {
 	if cfg.SeedAdminEmail != "" && cfg.SeedAdminPassword != "" {
 		if err := seedWedding(weddingUC, cfg); err != nil {
 			slog.Error("failed to seed wedding", "error", err)
+			os.Exit(1)
+		}
+	}
+
+	if *seedDev {
+		w, err := weddingRepo.FindBySlug(context.Background(), cfg.SeedWeddingSlug)
+		if err != nil {
+			slog.Error("wedding não encontrado para seed de dev", "slug", cfg.SeedWeddingSlug, "error", err)
+			os.Exit(1)
+		}
+		if err := seed.DevData(context.Background(), w.ID, invitationRepo, guestRepo, giftRepo); err != nil {
+			slog.Error("failed to seed dev data", "error", err)
 			os.Exit(1)
 		}
 	}
@@ -123,7 +149,7 @@ func main() {
 	slog.Info("server stopped")
 }
 
-func setupLogger(level string) {
+func setupLogger(level, format string) {
 	var lvl slog.Level
 	switch strings.ToLower(level) {
 	case "debug":
@@ -136,7 +162,15 @@ func setupLogger(level string) {
 		lvl = slog.LevelInfo
 	}
 
-	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: lvl})
+	opts := &slog.HandlerOptions{Level: lvl}
+
+	var handler slog.Handler
+	if strings.ToLower(format) == "json" {
+		handler = slog.NewJSONHandler(os.Stdout, opts)
+	} else {
+		handler = slog.NewTextHandler(os.Stdout, opts)
+	}
+
 	slog.SetDefault(slog.New(handler))
 }
 

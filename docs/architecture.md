@@ -127,7 +127,11 @@ Validação declarativa via struct tags (`validate:"required,email"`). Helper `d
 
 ### slog (stdlib)
 
-Logger estruturado nativo. Nível configurável via `LOG_LEVEL`. Output texto em desenvolvimento.
+Logger estruturado nativo. Nível configurável via `LOG_LEVEL`. Formato via `LOG_FORMAT`: `text` para dev (legível), `json` para produção (compatível com Datadog, Loki, etc.).
+
+### httprate (rate limiting)
+
+Rate limiting por IP nos endpoints públicos (60 req/min), login admin (10 req/min) e webhook (30 req/min). Biblioteca do ecossistema chi, sem estado externo.
 
 ## CORS
 
@@ -187,6 +191,8 @@ mr-wedding-api/
 │       │   └── payment_repository.go  # Implementação PaymentRepository
 │       ├── gateway/
 │       │   └── mercadopago.go         # SDK Mercado Pago (PIX + cartão)
+│       ├── seed/
+│       │   └── dev.go                 # Dados fictícios para desenvolvimento
 │       └── web/
 │           ├── handler/
 │           │   ├── auth.go            # Login admin
@@ -216,8 +222,11 @@ mr-wedding-api/
 │   ├── 004_create_gifts.down.sql
 │   ├── 005_create_payments.up.sql
 │   └── 005_create_payments.down.sql
+├── postman/                           # Collection + environment Postman
 ├── docs/
 ├── .cursor/rules/
+├── Dockerfile                         # Multi-stage build
+├── .dockerignore
 ├── .env.example
 ├── .env                               # (gitignored)
 ├── .gitignore

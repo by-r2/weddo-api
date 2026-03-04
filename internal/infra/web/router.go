@@ -2,10 +2,12 @@ package web
 
 import (
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/httprate"
 
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/domain/repository"
 	"github.com/rafaeljurkfitz/mr-wedding-api/internal/infra/web/handler"
@@ -61,6 +63,7 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 		// Endpoints públicos (tenant via UUID na URL)
 		r.Route("/w/{weddingId}", func(r chi.Router) {
 			r.Use(middleware.TenantResolver(deps.WeddingRepo))
+			r.Use(httprate.LimitByIP(60, 1*time.Minute))
 
 			r.Post("/rsvp", rsvpHandler.Confirm)
 			r.Get("/rsvp/invitation", rsvpHandler.LookupInvitation)
@@ -72,10 +75,12 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 		})
 
 		// Webhook (sem auth — validação via assinatura do provider)
-		r.Post("/payments/webhook", paymentHandler.Webhook)
+		r.With(httprate.LimitByIP(30, 1*time.Minute)).
+			Post("/payments/webhook", paymentHandler.Webhook)
 
-		// Autenticação
-		r.Post("/admin/auth", authHandler.Login)
+		// Autenticação — limite restrito para mitigar brute-force
+		r.With(httprate.LimitByIP(10, 1*time.Minute)).
+			Post("/admin/auth", authHandler.Login)
 
 		// Endpoints admin (tenant via JWT)
 		r.Route("/admin", func(r chi.Router) {

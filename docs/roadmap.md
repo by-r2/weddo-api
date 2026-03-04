@@ -17,7 +17,7 @@ Setup do projeto, estrutura base e infraestrutura mínima.
 - [x] Estrutura de resposta padronizada (sucesso e erro)
 - [x] Helpers de validação (decode + validator)
 - [x] Erros de domínio (ErrNotFound, ErrUnauthorized, etc.)
-- [ ] Dockerfile
+- [x] Dockerfile
 
 ## Fase 2 — Confirmação de Presença (RSVP) ✅
 
@@ -54,12 +54,13 @@ Substituir o Casar.com por solução própria com PIX e cartão.
 - [ ] Testes unitários dos use cases
 - [ ] Integração com o frontend
 
-## Fase 4 — Polimento
+## Fase 4 — Polimento (parcial) ✅
 
-- [ ] Dockerfile
-- [ ] Seed de dados para desenvolvimento
-- [ ] Rate limiting nos endpoints públicos
-- [ ] Logs estruturados em produção (JSON)
+- [x] Dockerfile multi-stage build + .dockerignore
+- [x] Seed de dados para desenvolvimento (`make seed-dev`)
+- [x] Rate limiting nos endpoints públicos (httprate)
+- [x] Logs estruturados em produção (JSON via `LOG_FORMAT=json`)
+- [x] Makefile com targets Docker (`docker-build`, `docker-run`, `docker-stop`)
 - [ ] CI/CD básico
 - [ ] Deploy (VPS, Fly.io, Railway ou similar)
 - [ ] Monitoramento básico (uptime, erros)
