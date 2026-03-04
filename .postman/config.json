@@ -1,0 +1,17 @@
+{
+  "workspace": {
+    "id": ""
+  },
+  "entities": {
+    "environments": [
+      "../mr-wedding-api.postman_environment.json"
+    ],
+    "flows": [],
+    "globals": [],
+    "mocks": [],
+    "specs": [],
+    "collections": [
+      "../mr-wedding-api.postman_collection.json"
+    ]
+  }
+}

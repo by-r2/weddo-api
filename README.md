@@ -74,3 +74,12 @@ O servidor sobe em `http://localhost:8080`. O arquivo `.env` é carregado automa
 | [docs/api.md](docs/api.md) | Endpoints, contratos e exemplos |
 | [docs/database.md](docs/database.md) | Modelo de dados e migrações |
 | [docs/gift-list.md](docs/gift-list.md) | Lista de presentes: fluxos e integração Mercado Pago |
+
+### Postman
+
+A pasta `postman/` é um workspace local do Postman. Para usar:
+
+- **VS Code Extension**: abra a pasta `postman/` pela extensão — collection e environment já estão registrados
+- **App/Web**: importe `postman/collections/mr-wedding-api.postman_collection.json` e `postman/environments/mr-wedding-api.postman_environment.json`
+
+Ajuste `adminEmail` e `adminPassword` no environment, execute **Login** e todas as variáveis (`token`, `weddingId`, etc.) serão populadas automaticamente.

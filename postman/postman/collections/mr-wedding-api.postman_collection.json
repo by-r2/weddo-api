@@ -1,0 +1,1374 @@
+{
+  "info": {
+    "_postman_id": "dfdf2d0f-66fa-4def-a16e-56d670ae12bf",
+    "name": "mr-wedding-api",
+    "description": "API multi-tenant para sites de casamento.\n\n## Setup\n\n1. Importe esta collection\n2. Importe o environment `mr-wedding-api.postman_environment.json`\n3. Rode o servidor: `make run`\n4. Execute **Admin > Login** para popular `token` e `weddingId` automaticamente\n5. Pronto — todas as requests usarão as variáveis automaticamente\n\n## Variáveis\n\n| Variável | Preenchida por | Uso |\n|----------|---------------|-----|\n| `baseUrl` | Environment | Base URL do servidor |\n| `token` | Login (auto) | Bearer token JWT |\n| `weddingId` | Login (auto) | UUID do tenant para endpoints públicos |\n| `invitationId` | Criar Convite (auto) | ID do último convite criado |\n| `guestId` | Listar Convidados (auto) | ID do primeiro convidado na lista |\n| `giftId` | Criar Presente (auto) | ID do último presente criado |\n| `paymentId` | Comprar Presente (auto) | ID do último pagamento criado |",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status ok', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.status).to.eql('ok');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "id": "ccf475d6-16f9-4633-a222-b955f1afb32a",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Verifica se o servidor está ativo. Não requer autenticação."
+          },
+          "response": []
+        }
+      ],
+      "id": "114e7a23-8165-4133-a87f-f5294ead5d43",
+      "description": "Endpoint de monitoramento."
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Auth",
+          "item": [
+            {
+              "name": "Login",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "if (pm.response.code === 200) {",
+                      "  const body = pm.response.json();",
+                      "  pm.environment.set('token', body.token);",
+                      "  pm.environment.set('weddingId', body.wedding.id);",
+                      "  pm.test('Token salvo', () => pm.expect(body.token).to.be.a('string'));",
+                      "  pm.test('Wedding ID salvo', () => pm.expect(body.wedding.id).to.be.a('string'));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "id": "7dcbf8f8-22c7-47ff-8812-f5b38324beb8",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/auth",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "auth"
+                  ]
+                },
+                "description": "Autentica o admin e retorna JWT + dados do wedding.\n\nO token e weddingId são salvos automaticamente nas variáveis do environment."
+              },
+              "response": []
+            }
+          ],
+          "id": "d1045d2b-37a0-4fce-a898-4e712d8d0636"
+        },
+        {
+          "name": "Dashboard",
+          "item": [
+            {
+              "name": "Dashboard",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Tem stats de RSVP', () => {",
+                      "  const body = pm.response.json();",
+                      "  pm.expect(body.rsvp).to.have.property('total_guests');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "id": "b8e3cb89-8e50-416c-9dd3-e287dafb48d1",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/dashboard",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "dashboard"
+                  ]
+                },
+                "description": "Retorna estatísticas consolidadas de RSVP e presentes."
+              },
+              "response": []
+            }
+          ],
+          "id": "b0b15718-3b56-485d-ad51-dd66bcd80b0a"
+        },
+        {
+          "name": "Invitations",
+          "item": [
+            {
+              "name": "Criar Convite",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "  const body = pm.response.json();",
+                      "  pm.environment.set('invitationId', body.id);",
+                      "  if (body.guests && body.guests.length > 0) {",
+                      "    pm.environment.set('guestId', body.guests[0].id);",
+                      "  }",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "id": "533c781c-59a3-4386-8feb-c2135370b794",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"SILVA-001\",\n  \"label\": \"Família Silva\",\n  \"max_guests\": 3,\n  \"notes\": \"\",\n  \"guests\": [\n    { \"name\": \"João Silva\" },\n    { \"name\": \"Maria Silva\" },\n    { \"name\": \"Pedro Silva\" }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/invitations",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "invitations"
+                  ]
+                },
+                "description": "Cria um convite com convidados inline. O campo `guests` é opcional."
+              },
+              "response": []
+            },
+            {
+              "name": "Listar Convites",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Tem paginação', () => {",
+                      "  pm.expect(pm.response.json().meta).to.have.property('total');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "id": "745bce1b-c1a6-4e96-8bc4-9c86deec46a1",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/invitations?page=1&per_page=20&search=",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "invitations"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "per_page",
+                      "value": "20"
+                    },
+                    {
+                      "key": "search",
+                      "value": "",
+                      "description": "Busca por label ou code"
+                    }
+                  ]
+                },
+                "description": "Lista convites com paginação e busca opcional."
+              },
+              "response": []
+            },
+            {
+              "name": "Detalhar Convite",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "id": "46f229f4-4aeb-436a-ac9e-0350613b7125",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/invitations/{{invitationId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "invitations",
+                    "{{invitationId}}"
+                  ]
+                },
+                "description": "Retorna detalhes do convite com lista de convidados."
+              },
+              "response": []
+            },
+            {
+              "name": "Atualizar Convite",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "id": "3c723bd3-35e6-4dd6-9de9-5adb7007b3b0",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"SILVA-001\",\n  \"label\": \"Família Silva (atualizado)\",\n  \"max_guests\": 4,\n  \"notes\": \"Mesa 5\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/invitations/{{invitationId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "invitations",
+                    "{{invitationId}}"
+                  ]
+                },
+                "description": "Atualiza os dados do convite (não altera guests)."
+              },
+              "response": []
+            },
+            {
+              "name": "Adicionar Convidado ao Convite",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "  pm.environment.set('guestId', pm.response.json().id);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "id": "3e10a6bc-d552-4950-a7b4-807d671f43c3",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Ana Silva\",\n  \"phone\": \"11999998888\",\n  \"email\": \"ana@email.com\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/invitations/{{invitationId}}/guests",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "invitations",
+                    "{{invitationId}}",
+                    "guests"
+                  ]
+                },
+                "description": "Adiciona um convidado a um convite existente."
+              },
+              "response": []
+            },
+            {
+              "name": "Remover Convite",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                    ]
+                  }
+                }
+              ],
+              "id": "26aff9eb-c059-40df-ad9d-4caa5b1d13da",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/invitations/{{invitationId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "invitations",
+                    "{{invitationId}}"
+                  ]
+                },
+                "description": "Remove o convite e todos os convidados vinculados (cascade)."
+              },
+              "response": []
+            }
+          ],
+          "id": "a1d821e3-47ea-4f53-b098-75dd4edb2f2f",
+          "description": "CRUD de convites. Cada convite agrupa convidados (família, casal, etc.)."
+        },
+        {
+          "name": "Guests",
+          "item": [
+            {
+              "name": "Listar Convidados",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "const body = pm.response.json();",
+                      "if (body.data && body.data.length > 0) {",
+                      "  pm.environment.set('guestId', body.data[0].id);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "id": "25add400-d8d6-4bc4-b471-547f0379648d",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/guests?page=1&per_page=20&status=&search=",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "guests"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "per_page",
+                      "value": "20"
+                    },
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "pending, confirmed ou declined"
+                    },
+                    {
+                      "key": "search",
+                      "value": "",
+                      "description": "Busca por nome"
+                    }
+                  ]
+                },
+                "description": "Lista todos os convidados com filtros opcionais de status e busca."
+              },
+              "response": []
+            },
+            {
+              "name": "Detalhar Convidado",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "id": "fe5ba5c5-1ca3-4e75-a989-c3612ff13240",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/guests/{{guestId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "guests",
+                    "{{guestId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Atualizar Convidado",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "id": "7ab4c74a-8212-45ba-a3e2-bb97fde7a720",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"João Silva\",\n  \"phone\": \"11999997777\",\n  \"email\": \"joao@email.com\",\n  \"status\": \"confirmed\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/guests/{{guestId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "guests",
+                    "{{guestId}}"
+                  ]
+                },
+                "description": "Atualiza dados e/ou status do convidado. Status aceitos: `pending`, `confirmed`, `declined`."
+              },
+              "response": []
+            },
+            {
+              "name": "Remover Convidado",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                    ]
+                  }
+                }
+              ],
+              "id": "d0bc895b-4a9b-48fa-a0fd-bd308272232a",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/guests/{{guestId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "guests",
+                    "{{guestId}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ],
+          "id": "c54dc96b-b843-4f94-9142-11f42f715651",
+          "description": "Gerenciamento individual de convidados."
+        },
+        {
+          "name": "Gifts",
+          "item": [
+            {
+              "name": "Criar Presente",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "  pm.environment.set('giftId', pm.response.json().id);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "id": "25e2ecf4-5c34-4359-8cdc-9d87a5d83dad",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Jogo de Panelas\",\n  \"description\": \"Jogo com 5 peças antiaderente\",\n  \"price\": 350.00,\n  \"image_url\": \"https://img.example.com/panelas.jpg\",\n  \"category\": \"Cozinha\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/gifts",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "gifts"
+                  ]
+                },
+                "description": "Cadastra um presente na lista."
+              },
+              "response": []
+            },
+            {
+              "name": "Listar Presentes (Admin)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "id": "058d30f8-8562-49e2-b110-00d5813cbae7",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/gifts?page=1&per_page=20&category=&status=&search=",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "gifts"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "per_page",
+                      "value": "20"
+                    },
+                    {
+                      "key": "category",
+                      "value": "",
+                      "description": "Filtrar por categoria"
+                    },
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "available ou purchased"
+                    },
+                    {
+                      "key": "search",
+                      "value": "",
+                      "description": "Busca por nome"
+                    }
+                  ]
+                },
+                "description": "Lista todos os presentes (incluindo purchased). Para admin."
+              },
+              "response": []
+            },
+            {
+              "name": "Detalhar Presente",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "id": "549e955e-355c-42ef-82f4-88e63dc28816",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/gifts/{{giftId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "gifts",
+                    "{{giftId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Atualizar Presente",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "id": "7f2a7b7d-dd1f-42cb-991d-15d61c15baa0",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Jogo de Panelas Premium\",\n  \"description\": \"Jogo com 7 peças antiaderente\",\n  \"price\": 450.00,\n  \"image_url\": \"https://img.example.com/panelas-premium.jpg\",\n  \"category\": \"Cozinha\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/gifts/{{giftId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "gifts",
+                    "{{giftId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Remover Presente",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                    ]
+                  }
+                }
+              ],
+              "id": "79745d4e-830f-4a64-814b-757af265d002",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/gifts/{{giftId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "gifts",
+                    "{{giftId}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ],
+          "id": "3d11294b-445f-42bb-9b26-7c070b9bc07e",
+          "description": "CRUD de presentes para a lista virtual."
+        },
+        {
+          "name": "Payments",
+          "item": [
+            {
+              "name": "Listar Pagamentos",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "id": "8cc4d1a0-16ce-46ea-86ef-6c5a9bf65678",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/payments?page=1&per_page=20&status=&gift_id=",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "payments"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "per_page",
+                      "value": "20"
+                    },
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "pending, approved, rejected, expired"
+                    },
+                    {
+                      "key": "gift_id",
+                      "value": "",
+                      "description": "Filtrar por presente"
+                    }
+                  ]
+                },
+                "description": "Lista pagamentos recebidos com filtros opcionais."
+              },
+              "response": []
+            },
+            {
+              "name": "Detalhar Pagamento",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "id": "c85194ee-b88f-41c7-b299-805a6a9fe63f",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/payments/{{paymentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "payments",
+                    "{{paymentId}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ],
+          "id": "66e9eb9e-f49d-4763-90d6-967bcf31db4f",
+          "description": "Consulta de pagamentos (somente leitura para admin)."
+        }
+      ],
+      "id": "6c281f8d-6420-4565-bbb5-b82f1c7db8a4",
+      "description": "Endpoints protegidos por JWT. Rode **Login** primeiro para popular o token automaticamente.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Público",
+      "item": [
+        {
+          "name": "RSVP",
+          "item": [
+            {
+              "name": "Confirmar Presença",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200 ou 409', () => {",
+                      "  pm.expect(pm.response.code).to.be.oneOf([200, 409]);",
+                      "});",
+                      "pm.test('Tem mensagem', () => {",
+                      "  pm.expect(pm.response.json().message).to.be.a('string');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "id": "8222c48e-6e33-41f9-af20-2a4c525d5cc1",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"João Silva\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/w/{{weddingId}}/rsvp",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "w",
+                    "{{weddingId}}",
+                    "rsvp"
+                  ]
+                },
+                "description": "Confirma presença buscando por nome exato (case-insensitive).\n\n- **200**: Confirmado com sucesso\n- **404**: Nome não encontrado\n- **409**: Já confirmado anteriormente"
+              },
+              "response": []
+            },
+            {
+              "name": "Consultar Convite",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Tem guests', () => {",
+                      "  pm.expect(pm.response.json().guests).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "id": "168c67b2-90bd-444e-bd1f-0688019e9f12",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/w/{{weddingId}}/rsvp/invitation?name=João Silva",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "w",
+                    "{{weddingId}}",
+                    "rsvp",
+                    "invitation"
+                  ],
+                  "query": [
+                    {
+                      "key": "name",
+                      "value": "João Silva",
+                      "description": "Nome exato do convidado"
+                    }
+                  ]
+                },
+                "description": "Busca o convite pelo nome do convidado e retorna todos os convidados do mesmo convite com seus status."
+              },
+              "response": []
+            }
+          ],
+          "id": "73ada0fc-4647-40bb-862b-072abd602f4b",
+          "description": "Confirmação de presença. Não requer autenticação."
+        },
+        {
+          "name": "Gifts",
+          "item": [
+            {
+              "name": "Listar Presentes (Público)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "",
+                      "const body = pm.response.json();",
+                      "if (body.data && body.data.length > 0) {",
+                      "  pm.environment.set('giftId', body.data[0].id);",
+                      "  pm.test('Só presentes available', () => {",
+                      "    body.data.forEach(g => pm.expect(g.status).to.eql('available'));",
+                      "  });",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "id": "fb956044-879c-4e0a-bf4a-3b08e4980de0",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/w/{{weddingId}}/gifts?page=1&per_page=20&category=&search=",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "w",
+                    "{{weddingId}}",
+                    "gifts"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "per_page",
+                      "value": "20"
+                    },
+                    {
+                      "key": "category",
+                      "value": "",
+                      "description": "Filtrar por categoria"
+                    },
+                    {
+                      "key": "search",
+                      "value": "",
+                      "description": "Buscar por nome"
+                    }
+                  ]
+                },
+                "description": "Lista apenas presentes disponíveis (status = available)."
+              },
+              "response": []
+            },
+            {
+              "name": "Detalhar Presente (Público)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "id": "5c4fb6c4-30f4-4fce-8d90-a5e4aae178ce",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/w/{{weddingId}}/gifts/{{giftId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "w",
+                    "{{weddingId}}",
+                    "gifts",
+                    "{{giftId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Comprar Presente (PIX)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 201 ou 503', () => {",
+                      "  pm.expect(pm.response.code).to.be.oneOf([201, 503]);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "  const body = pm.response.json();",
+                      "  pm.environment.set('paymentId', body.payment_id);",
+                      "  pm.test('Tem QR code', () => pm.expect(body.qr_code).to.be.a('string'));",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "id": "361f061f-0cb8-45ea-a007-5935e931e73e",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"payer_name\": \"Tia Maria\",\n  \"payer_email\": \"maria@email.com\",\n  \"message\": \"Felicidades ao casal!\",\n  \"payment_method\": \"pix\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/w/{{weddingId}}/gifts/{{giftId}}/purchase",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "w",
+                    "{{weddingId}}",
+                    "gifts",
+                    "{{giftId}}",
+                    "purchase"
+                  ]
+                },
+                "description": "Inicia pagamento via PIX. Retorna QR code e código copia-e-cola.\n\nRequer `MP_ACCESS_TOKEN` configurado no servidor."
+              },
+              "response": []
+            },
+            {
+              "name": "Comprar Presente (Cartão)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 201 ou 503', () => {",
+                      "  pm.expect(pm.response.code).to.be.oneOf([201, 503]);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "  pm.environment.set('paymentId', pm.response.json().payment_id);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "id": "3b7c59f1-e0a7-4ca0-ba72-363549e030b2",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"payer_name\": \"Tia Maria\",\n  \"payer_email\": \"maria@email.com\",\n  \"message\": \"Felicidades ao casal!\",\n  \"payment_method\": \"credit_card\",\n  \"card_token\": \"TOKEN_DO_MERCADOPAGO_JS\",\n  \"payment_method_id\": \"visa\",\n  \"installments\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/w/{{weddingId}}/gifts/{{giftId}}/purchase",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "w",
+                    "{{weddingId}}",
+                    "gifts",
+                    "{{giftId}}",
+                    "purchase"
+                  ]
+                },
+                "description": "Inicia pagamento via cartão de crédito.\n\nO `card_token` é gerado pelo MercadoPago.js no frontend. Em sandbox, use tokens de teste do Mercado Pago."
+              },
+              "response": []
+            }
+          ],
+          "id": "461bc9ea-b95c-443e-af49-180cfd411dee",
+          "description": "Lista de presentes e fluxo de compra. Não requer autenticação."
+        },
+        {
+          "name": "Payments",
+          "item": [
+            {
+              "name": "Status do Pagamento",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Tem status', () => {",
+                      "  pm.expect(pm.response.json().status).to.be.a('string');",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "id": "5046edd0-f15e-491f-9244-c8244fac1f01",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/w/{{weddingId}}/payments/{{paymentId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "w",
+                    "{{weddingId}}",
+                    "payments",
+                    "{{paymentId}}",
+                    "status"
+                  ]
+                },
+                "description": "Polling do status de um pagamento (usado enquanto aguarda PIX)."
+              },
+              "response": []
+            }
+          ],
+          "id": "23c56c26-b01a-4120-b451-29974d76d5f0",
+          "description": "Consulta pública de pagamentos."
+        }
+      ],
+      "id": "f8a8760b-0548-40a9-b416-3b4935d0b466",
+      "description": "Endpoints públicos. Não requerem autenticação. O tenant é identificado pelo `weddingId` na URL.",
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Webhook",
+      "item": [
+        {
+          "name": "Mercado Pago Webhook",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 ou 503', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 503]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "id": "d0894f9b-3055-4d82-8759-bad4cb1d7b51",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"payment.updated\",\n  \"data\": {\n    \"id\": \"123456789\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "webhook"
+              ]
+            },
+            "description": "Simula uma notificação do Mercado Pago.\n\nEm produção, este endpoint é chamado automaticamente pelo Mercado Pago. O `data.id` é o ID do pagamento no Mercado Pago (provider_id)."
+          },
+          "response": []
+        }
+      ],
+      "id": "81168c0e-af71-4938-b602-239c7840aaff",
+      "description": "Webhooks de provedores externos. Não requerem JWT — validação via assinatura do provider."
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
+}
