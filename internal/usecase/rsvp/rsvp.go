@@ -47,6 +47,21 @@ func (uc *UseCase) Confirm(ctx context.Context, weddingID, name string) (*entity
 	return guest, inv, alreadyConfirmed, nil
 }
 
+// FindInvitationByID busca o convite pelo ID e lista todos os guests vinculados.
+func (uc *UseCase) FindInvitationByID(ctx context.Context, weddingID, invitationID string) (*entity.Invitation, []entity.Guest, error) {
+	inv, err := uc.invitationRepo.FindByID(ctx, weddingID, invitationID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	guests, err := uc.guestRepo.ListByInvitation(ctx, weddingID, inv.ID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("rsvp.FindInvitationByID: list guests: %w", err)
+	}
+
+	return inv, guests, nil
+}
+
 // LookupInvitation busca o convite de um convidado pelo nome e lista todos os guests do convite.
 func (uc *UseCase) LookupInvitation(ctx context.Context, weddingID, name string) (*entity.Invitation, []entity.Guest, error) {
 	guest, err := uc.guestRepo.FindByName(ctx, weddingID, name)

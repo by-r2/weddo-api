@@ -3,6 +3,8 @@ package handler
 import (
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/by-r2/weddo-api/internal/domain/entity"
 	"github.com/by-r2/weddo-api/internal/dto"
 	"github.com/by-r2/weddo-api/internal/infra/web/middleware"
@@ -47,6 +49,31 @@ func (h *RSVPHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 		Guest:      toGuestSummary(guest),
 		Invitation: dto.InvitationSummary{Label: inv.Label},
 		Message:    msg,
+	})
+}
+
+func (h *RSVPHandler) GetInvitation(w http.ResponseWriter, r *http.Request) {
+	weddingID := middleware.GetWeddingID(r.Context())
+	invitationID := chi.URLParam(r, "invitationId")
+
+	inv, guests, err := h.rsvpUC.FindInvitationByID(r.Context(), weddingID, invitationID)
+	if err != nil {
+		if err == entity.ErrNotFound {
+			respondError(w, http.StatusNotFound, "Convite não encontrado.")
+			return
+		}
+		respondError(w, http.StatusInternalServerError, "Erro interno do servidor.")
+		return
+	}
+
+	guestsPublic := make([]dto.GuestPublic, len(guests))
+	for i, g := range guests {
+		guestsPublic[i] = dto.GuestPublic{Name: g.Name, Status: string(g.Status)}
+	}
+
+	respondJSON(w, http.StatusOK, dto.RSVPInvitationResponse{
+		Invitation: dto.InvitationSummary{Label: inv.Label, MaxGuests: inv.MaxGuests},
+		Guests:     guestsPublic,
 	})
 }
 
