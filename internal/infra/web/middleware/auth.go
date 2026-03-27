@@ -11,7 +11,10 @@ import (
 
 type contextKey string
 
-const WeddingIDKey contextKey = "wedding_id"
+const (
+	WeddingIDKey contextKey = "wedding_id"
+	UserIDKey    contextKey = "user_id"
+)
 
 func Auth(jwtSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -51,7 +54,10 @@ func Auth(jwtSecret string) func(http.Handler) http.Handler {
 				return
 			}
 
+			userID, _ := claims["user_id"].(string)
+
 			ctx := context.WithValue(r.Context(), WeddingIDKey, weddingID)
+			ctx = context.WithValue(ctx, UserIDKey, userID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -59,6 +65,11 @@ func Auth(jwtSecret string) func(http.Handler) http.Handler {
 
 func GetWeddingID(ctx context.Context) string {
 	id, _ := ctx.Value(WeddingIDKey).(string)
+	return id
+}
+
+func GetUserID(ctx context.Context) string {
+	id, _ := ctx.Value(UserIDKey).(string)
 	return id
 }
 

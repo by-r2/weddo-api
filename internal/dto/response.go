@@ -1,14 +1,31 @@
 package dto
 
-type LoginResponse struct {
-	Token   string          `json:"token"`
-	Wedding WeddingSummary  `json:"wedding"`
+type AuthResponse struct {
+	Token   string         `json:"token"`
+	Wedding WeddingSummary `json:"wedding"`
+	User    UserSummary    `json:"user"`
 }
 
 type WeddingSummary struct {
 	ID    string `json:"id"`
 	Slug  string `json:"slug"`
 	Title string `json:"title"`
+}
+
+type UserSummary struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Email     string `json:"email"`
+	AvatarURL string `json:"avatar_url,omitempty"`
+}
+
+type UserResponse struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Email     string `json:"email"`
+	AvatarURL string `json:"avatar_url,omitempty"`
+	HasGoogle bool   `json:"has_google"`
+	CreatedAt string `json:"created_at"`
 }
 
 type ErrorResponse struct {

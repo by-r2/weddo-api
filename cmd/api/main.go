@@ -13,9 +13,11 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/by-r2/weddo-api/internal/domain/gateway"
 	"github.com/by-r2/weddo-api/internal/infra/config"
 	"github.com/by-r2/weddo-api/internal/infra/database"
-	"github.com/by-r2/weddo-api/internal/infra/gateway"
+	infragateway "github.com/by-r2/weddo-api/internal/infra/gateway"
+	infraGoogle "github.com/by-r2/weddo-api/internal/infra/google"
 	"github.com/by-r2/weddo-api/internal/infra/security"
 	"github.com/by-r2/weddo-api/internal/infra/seed"
 	infraSheets "github.com/by-r2/weddo-api/internal/infra/sheets"
@@ -26,6 +28,7 @@ import (
 	paymentuc "github.com/by-r2/weddo-api/internal/usecase/payment"
 	"github.com/by-r2/weddo-api/internal/usecase/rsvp"
 	sheetsuc "github.com/by-r2/weddo-api/internal/usecase/sheets"
+	"github.com/by-r2/weddo-api/internal/usecase/user"
 	"github.com/by-r2/weddo-api/internal/usecase/wedding"
 )
 
@@ -70,12 +73,14 @@ func main() {
 	giftRepo := database.NewGiftRepository(db)
 	paymentRepo := database.NewPaymentRepository(db)
 	googleIntegrationRepo := database.NewGoogleIntegrationRepository(db)
+	userRepo := database.NewUserRepository(db)
 
-	weddingUC := wedding.NewUseCase(weddingRepo, cfg.JWTSecret, cfg.JWTExpirationHours)
+	weddingUC := wedding.NewUseCase(weddingRepo, userRepo, cfg.JWTSecret, cfg.JWTExpirationHours)
 	rsvpUC := rsvp.NewUseCase(guestRepo, invitationRepo)
 	invitationUC := invitation.NewUseCase(invitationRepo, guestRepo)
 	guestUC := guest.NewUseCase(guestRepo, invitationRepo)
 	giftUC := giftuc.NewUseCase(giftRepo, paymentRepo)
+	userUC := user.NewUseCase(userRepo)
 	var sheetsUC *sheetsuc.UseCase
 
 	var paymentUC *paymentuc.UseCase
@@ -85,7 +90,7 @@ func main() {
 			slog.Error("PAYMENT_PROVIDER=infinitepay requer IP_HANDLE")
 			os.Exit(1)
 		}
-		ipGateway := gateway.NewInfinitePayGateway(cfg.IPHandle, cfg.IPRedirectURL, cfg.IPWebhookURL)
+		ipGateway := infragateway.NewInfinitePayGateway(cfg.IPHandle, cfg.IPRedirectURL, cfg.IPWebhookURL)
 		paymentUC = paymentuc.NewUseCase(paymentRepo, giftRepo, ipGateway)
 		slog.Info("payment gateway initialized", "provider", "infinitepay")
 
@@ -94,7 +99,7 @@ func main() {
 			slog.Error("PAYMENT_PROVIDER=mercadopago requer MP_ACCESS_TOKEN")
 			os.Exit(1)
 		}
-		mpGateway, err := gateway.NewMercadoPagoGateway(cfg.MPAccessToken, cfg.MPNotificationURL, cfg.MPPixExpirationMin)
+		mpGateway, err := infragateway.NewMercadoPagoGateway(cfg.MPAccessToken, cfg.MPNotificationURL, cfg.MPPixExpirationMin)
 		if err != nil {
 			slog.Error("failed to init mercado pago gateway", "error", err)
 			os.Exit(1)
@@ -115,6 +120,12 @@ func main() {
 			slog.Error("failed to seed wedding", "error", err)
 			os.Exit(1)
 		}
+	}
+
+	var googleVerifier gateway.GoogleAuthVerifier
+	if cfg.GoogleOAuthClientID != "" {
+		googleVerifier = infraGoogle.NewAuthVerifier(cfg.GoogleOAuthClientID)
+		slog.Info("google auth verifier enabled")
 	}
 
 	if cfg.GoogleOAuthClientID != "" && cfg.GoogleOAuthClientSecret != "" && cfg.GoogleOAuthRedirectURL != "" && cfg.GoogleOAuthTokenCipherKey != "" {
@@ -157,16 +168,18 @@ func main() {
 	}
 
 	router := web.NewRouter(web.RouterDeps{
-		WeddingUC:    weddingUC,
-		RSVPUC:       rsvpUC,
-		InvitationUC: invitationUC,
-		GuestUC:      guestUC,
-		GiftUC:       giftUC,
-		PaymentUC:    paymentUC,
-		SheetsUC:     sheetsUC,
-		WeddingRepo:  weddingRepo,
-		JWTSecret:    cfg.JWTSecret,
-		CORSOrigins:  cfg.CORSAllowedOrigins,
+		WeddingUC:      weddingUC,
+		RSVPUC:         rsvpUC,
+		InvitationUC:   invitationUC,
+		GuestUC:        guestUC,
+		GiftUC:         giftUC,
+		PaymentUC:      paymentUC,
+		SheetsUC:       sheetsUC,
+		UserUC:         userUC,
+		WeddingRepo:    weddingRepo,
+		GoogleVerifier: googleVerifier,
+		JWTSecret:      cfg.JWTSecret,
+		CORSOrigins:    cfg.CORSAllowedOrigins,
 	})
 
 	srv := &http.Server{

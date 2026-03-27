@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
 
+	"github.com/by-r2/weddo-api/internal/domain/gateway"
 	"github.com/by-r2/weddo-api/internal/domain/repository"
 	"github.com/by-r2/weddo-api/internal/infra/web/handler"
 	"github.com/by-r2/weddo-api/internal/infra/web/middleware"
@@ -18,20 +19,23 @@ import (
 	paymentuc "github.com/by-r2/weddo-api/internal/usecase/payment"
 	"github.com/by-r2/weddo-api/internal/usecase/rsvp"
 	sheetsuc "github.com/by-r2/weddo-api/internal/usecase/sheets"
+	"github.com/by-r2/weddo-api/internal/usecase/user"
 	"github.com/by-r2/weddo-api/internal/usecase/wedding"
 )
 
 type RouterDeps struct {
-	WeddingUC    *wedding.UseCase
-	RSVPUC       *rsvp.UseCase
-	InvitationUC *invitation.UseCase
-	GuestUC      *guest.UseCase
-	GiftUC       *giftuc.UseCase
-	PaymentUC    *paymentuc.UseCase
-	SheetsUC     *sheetsuc.UseCase
-	WeddingRepo  repository.WeddingRepository
-	JWTSecret    string
-	CORSOrigins  string
+	WeddingUC      *wedding.UseCase
+	RSVPUC         *rsvp.UseCase
+	InvitationUC   *invitation.UseCase
+	GuestUC        *guest.UseCase
+	GiftUC         *giftuc.UseCase
+	PaymentUC      *paymentuc.UseCase
+	SheetsUC       *sheetsuc.UseCase
+	UserUC         *user.UseCase
+	WeddingRepo    repository.WeddingRepository
+	GoogleVerifier gateway.GoogleAuthVerifier
+	JWTSecret      string
+	CORSOrigins    string
 }
 
 func NewRouter(deps RouterDeps) *chi.Mux {
@@ -51,7 +55,7 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 	r.Use(middleware.Logger)
 	r.Use(chimiddleware.RealIP)
 
-	authHandler := handler.NewAuthHandler(deps.WeddingUC)
+	authHandler := handler.NewAuthHandler(deps.WeddingUC, deps.GoogleVerifier)
 	rsvpHandler := handler.NewRSVPHandler(deps.RSVPUC)
 	invHandler := handler.NewInvitationHandler(deps.InvitationUC)
 	guestHandler := handler.NewGuestHandler(deps.GuestUC)
@@ -59,6 +63,7 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 	paymentHandler := handler.NewPaymentHandler(deps.PaymentUC)
 	sheetsHandler := handler.NewSheetsHandler(deps.SheetsUC)
 	dashHandler := handler.NewDashboardHandler(deps.GuestUC, deps.GiftUC)
+	userHandler := handler.NewUserHandler(deps.UserUC)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", handler.Health)
@@ -86,9 +91,17 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 		r.With(httprate.LimitByIP(20, 1*time.Minute)).
 			Get("/sheets/connect/callback", sheetsHandler.ConnectCallback)
 
-		// Autenticação — limite restrito para mitigar brute-force
-		r.With(httprate.LimitByIP(10, 1*time.Minute)).
-			Post("/admin/auth", authHandler.Login)
+		// Autenticação e registro — limite restrito para mitigar brute-force
+		r.Group(func(r chi.Router) {
+			r.Use(httprate.LimitByIP(10, 1*time.Minute))
+			r.Post("/admin/auth", authHandler.Login)
+			r.Post("/admin/auth/google", authHandler.LoginGoogle)
+		})
+		r.Group(func(r chi.Router) {
+			r.Use(httprate.LimitByIP(5, 1*time.Minute))
+			r.Post("/admin/register", authHandler.Register)
+			r.Post("/admin/register/google", authHandler.RegisterGoogle)
+		})
 
 		// Endpoints admin (tenant via JWT)
 		r.Route("/admin", func(r chi.Router) {
@@ -129,6 +142,12 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 				r.Post("/connect/start", sheetsHandler.ConnectStart)
 				r.Post("/push", sheetsHandler.Push)
 				r.Post("/pull", sheetsHandler.Pull)
+			})
+
+			r.Route("/users", func(r chi.Router) {
+				r.Get("/", userHandler.List)
+				r.Post("/invite", userHandler.Invite)
+				r.Delete("/{id}", userHandler.Remove)
 			})
 		})
 	})

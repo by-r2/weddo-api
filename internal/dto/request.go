@@ -5,6 +5,32 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
+type RegisterRequest struct {
+	Partner1Name string `json:"partner1_name" validate:"required,max=100"`
+	Partner2Name string `json:"partner2_name" validate:"required,max=100"`
+	Email        string `json:"email" validate:"required,email"`
+	Password     string `json:"password" validate:"required,min=8,max=72"`
+	Date         string `json:"date"`
+	Slug         string `json:"slug" validate:"omitempty,max=100"`
+}
+
+type GoogleAuthRequest struct {
+	IDToken string `json:"id_token" validate:"required"`
+}
+
+type RegisterGoogleRequest struct {
+	Partner1Name string `json:"partner1_name" validate:"required,max=100"`
+	Partner2Name string `json:"partner2_name" validate:"required,max=100"`
+	IDToken      string `json:"id_token" validate:"required"`
+	Date         string `json:"date"`
+	Slug         string `json:"slug" validate:"omitempty,max=100"`
+}
+
+type InviteUserRequest struct {
+	Email string `json:"email" validate:"required,email"`
+	Name  string `json:"name" validate:"omitempty,max=100"`
+}
+
 // RSVP
 
 type RSVPRequest struct {
