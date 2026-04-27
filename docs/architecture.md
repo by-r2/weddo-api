@@ -135,7 +135,7 @@ Validação declarativa via struct tags (`validate:"required,email"`). Helper `d
 
 ### slog (stdlib)
 
-Logger estruturado nativo. Nível configurável via `LOG_LEVEL`. Formato via `LOG_FORMAT`: `text` para dev (legível), `json` para produção (compatível com Datadog, Loki, etc.).
+Logger estruturado nativo. Nível configurável via `LOG_LEVEL`. Formato via `LOG_FORMAT`: `text` para dev (legível), `json` para produção (compatível com CloudWatch, Datadog, Loki, etc.). O middleware de request (`internal/infra/web/middleware/logger.go`) segue a convenção usual no ecossistema Go (p.ex. go-chi/httplog): 2xx/3xx em `debug`, 4xx em `warn`, 5xx em `error` — com `LOG_LEVEL=info`, requisições bem-sucedidas não poluem o log. Detalhes em [configuration.md](configuration.md#logging).
 
 ### httprate (rate limiting)
 

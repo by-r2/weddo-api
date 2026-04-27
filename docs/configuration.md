@@ -185,12 +185,26 @@ CORS_ALLOWED_ORIGINS=https://manurafa.com.br,https://www.manurafa.com.br
 
 | Variável | Descrição | Default | Obrigatório |
 |----------|-----------|---------|-------------|
-| `LOG_LEVEL` | Nível de log: `debug`, `info`, `warn`, `error` | `info` | Não |
+| `LOG_LEVEL` | Nível mínimo de log: `debug`, `info`, `warn`, `error` | `info` | Não |
 | `LOG_FORMAT` | Formato do log: `text` (legível) ou `json` (estruturado) | `text` | Não |
 
-Use `debug` em desenvolvimento para ver detalhes de requests. Em produção, `info` ou `warn`.
+### Linha de log por requisição HTTP (middleware)
 
-Em produção use `LOG_FORMAT=json` para logs estruturados compatíveis com sistemas de observabilidade (Datadog, Grafana Loki, etc.).
+Cada request gera uma linha estruturada `msg=request` com `method`, `path`, `status`, `duration_ms` e `remote`. A **severidade** depende do status HTTP — alinhado à prática comum em libs como [go-chi/httplog](https://github.com/go-chi/httplog) (útil para filtros: p.ex. alarmes só em `error` / 5xx):
+
+| Faixa de status | Nível slog | Comportamento com `LOG_LEVEL=info` (padrão) |
+|-----------------|------------|---------------------------------------------|
+| 2xx, 3xx | `debug` | Não aparece (reduz ruído em produção) |
+| 4xx | `warn` | Aparece |
+| 5xx | `error` | Aparece |
+
+Outros eventos (boot, erros de use case, `respondInternalError`, panics recuperados, etc.) continuam nos níveis em que forem emitidos (`info`, `warn`, `error`).
+
+- **`LOG_LEVEL=info`**: recomendado em produção — linha de request para 4xx como `warn` e 5xx como `error` (convenção comum em middlewares Go); requisições 2xx/3xx não aparecem.
+- **`LOG_LEVEL=debug`**: desenvolvimento ou troubleshooting — inclui também cada request 2xx/3xx.
+- **`LOG_LEVEL=warn` ou `error`**: só mensagens a partir desse patamar (menos volume; pode omitir `info` úteis de inicialização se estiver abaixo do corte).
+
+Em produção use `LOG_FORMAT=json` para logs estruturados compatíveis com sistemas de observabilidade (CloudWatch Logs Insights, Datadog, Grafana Loki, etc.).
 
 ## Google Sheets OAuth (por tenant)
 
