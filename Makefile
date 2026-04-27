@@ -66,12 +66,12 @@ build-ApiFunction:
 sam-build:
 	sam build
 
-# Faz o deploy na AWS. Lê DATABASE_URL e JWT_SECRET do .env (ou do ambiente).
+# Faz o deploy na AWS. Lê variáveis do .env (Payment/CORS/Google opcionais — vazio ok).
 sam-deploy: sam-build
 	@test -n "$(DATABASE_URL)" || (echo "Erro: DATABASE_URL não definida. Adicione ao .env." && exit 1)
 	@test -n "$(JWT_SECRET)"   || (echo "Erro: JWT_SECRET não definida. Adicione ao .env." && exit 1)
 	sam deploy --config-env prod \
-		--parameter-overrides "DatabaseURL=$(DATABASE_URL) JWTSecret=$(JWT_SECRET)"
+		--parameter-overrides "DatabaseURL=$(DATABASE_URL) JWTSecret=$(JWT_SECRET) PaymentProvider=$(PAYMENT_PROVIDER) IPHandle=$(IP_HANDLE) IPRedirectURL=$(IP_REDIRECT_URL) IPWebhookURL=$(IP_WEBHOOK_URL) CORSAllowedOrigins=$(CORS_ALLOWED_ORIGINS) GoogleOAuthClientId=$(GOOGLE_OAUTH_CLIENT_ID) GoogleOAuthRedirectURL=$(GOOGLE_OAUTH_REDIRECT_URL) GoogleOAuthClientSecret=$(GOOGLE_OAUTH_CLIENT_SECRET) GoogleOAuthTokenCipherKey=$(GOOGLE_OAUTH_TOKEN_CIPHER_KEY)"
 
 # ─── Migrações ────────────────────────────────────────────────────────────────
 # Fluxo: deploy com RUN_MIGRATIONS=true → invoca a Lambda via health check → reverte.

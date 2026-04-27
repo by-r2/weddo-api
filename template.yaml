@@ -1,6 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: weddo-api — API serverless Go (Lambda + API Gateway HTTP API + Supabase PostgreSQL)
+Description: weddo-api — API serverless Go (Lambda + API Gateway HTTP API +
+  Supabase PostgreSQL)
 
 # ─────────────────────────────────── Parâmetros ───────────────────────────────
 
@@ -8,13 +9,15 @@ Parameters:
   Stage:
     Type: String
     Default: dev
-    AllowedValues: [dev, staging, prod]
+    AllowedValues: [ dev, staging, prod ]
     Description: Ambiente de deploy
 
   DatabaseURL:
     Type: String
     NoEcho: true
-    Description: "Connection string Supabase (ex: postgres://postgres.<ref>:<senha>@aws-0-us-east-1.pooler.supabase.com:6543/postgres)"
+    Description: "Connection string Supabase (ex:
+      postgres://postgres.<ref>:<senha>@aws-0-us-east-1.pooler.supabase.com:654\
+      3/postgres)"
 
   JWTSecret:
     Type: String
@@ -25,13 +28,14 @@ Parameters:
   RunMigrations:
     Type: String
     Default: "false"
-    AllowedValues: ["true", "false"]
+    AllowedValues: [ "true", "false" ]
     Description: Executa migrações no cold start — use "true" apenas na primeira implantação
 
   PaymentProvider:
     Type: String
     Default: ""
-    Description: Provedor de pagamento — "mercadopago", "infinitepay" ou vazio para desativar
+    Description: Provedor de pagamento — "mercadopago", "infinitepay" ou vazio para
+      desativar
 
   MPAccessToken:
     Type: String
@@ -42,7 +46,8 @@ Parameters:
   MPNotificationURL:
     Type: String
     Default: ""
-    Description: URL de webhook Mercado Pago (ex. https://<api-id>.execute-api.us-east-1.amazonaws.com/api/v1/payments/webhook)
+    Description: URL de webhook Mercado Pago (ex.
+      https://<api-id>.execute-api.us-east-1.amazonaws.com/api/v1/payments/webhook)
 
   MPPixExpirationMinutes:
     Type: Number
@@ -69,19 +74,40 @@ Parameters:
     Default: "*"
     Description: Origens CORS permitidas, separadas por vírgula
 
+  GoogleOAuthClientId:
+    Type: String
+    Default: ""
+    Description: Google OAuth Client ID (Sheets) — vazio desativa a integração
+
+  GoogleOAuthClientSecret:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Google OAuth Client Secret (Sheets)
+
+  GoogleOAuthRedirectURL:
+    Type: String
+    Default: ""
+    Description: "Callback OAuth — ex: https://<api-id>.execute-api.region.amazonaws.com/api/v1/sheets/connect/callback"
+
+  GoogleOAuthTokenCipherKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Chave base64 (32 bytes) para criptografar tokens OAuth no banco
+
   LambdaMemoryMB:
     Type: Number
     Default: 512
-    AllowedValues: [256, 512, 1024]
+    AllowedValues: [ 256, 512, 1024 ]
     Description: Memória da função Lambda em MB
-
 
 # ──────────────────────────────────── Globals ─────────────────────────────────
 
 Globals:
   Function:
     Runtime: provided.al2023
-    Architectures: [arm64]
+    Architectures: [ arm64 ]
     MemorySize: !Ref LambdaMemoryMB
     # Limite de 29s: API Gateway HTTP API encerra a conexão após 29 segundos
     Timeout: 29
@@ -135,6 +161,10 @@ Resources:
           IP_REDIRECT_URL: !Ref IPRedirectURL
           IP_WEBHOOK_URL: !Ref IPWebhookURL
           CORS_ALLOWED_ORIGINS: !Ref CORSAllowedOrigins
+          GOOGLE_OAUTH_CLIENT_ID: !Ref GoogleOAuthClientId
+          GOOGLE_OAUTH_CLIENT_SECRET: !Ref GoogleOAuthClientSecret
+          GOOGLE_OAUTH_REDIRECT_URL: !Ref GoogleOAuthRedirectURL
+          GOOGLE_OAUTH_TOKEN_CIPHER_KEY: !Ref GoogleOAuthTokenCipherKey
       Events:
         ApiRoot:
           Type: HttpApi
