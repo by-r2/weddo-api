@@ -1,6 +1,10 @@
-# Binário
+# Binários
 /bin/
 /tmp/
+/lambda
+
+# SAM build artifacts
+.aws-sam/
 
 # Configuração local
 .env

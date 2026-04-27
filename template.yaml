@@ -1,0 +1,189 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: weddo-api — API serverless Go (Lambda + API Gateway HTTP API + Supabase PostgreSQL)
+
+# ─────────────────────────────────── Parâmetros ───────────────────────────────
+
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    Description: Ambiente de deploy
+
+  DatabaseURL:
+    Type: String
+    NoEcho: true
+    Description: "Connection string Supabase (ex: postgres://postgres.<ref>:<senha>@aws-0-us-east-1.pooler.supabase.com:6543/postgres)"
+
+  JWTSecret:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    Description: Chave secreta JWT (mínimo 32 caracteres)
+
+  RunMigrations:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+    Description: Executa migrações no cold start — use "true" apenas na primeira implantação
+
+  PaymentProvider:
+    Type: String
+    Default: ""
+    Description: Provedor de pagamento — "mercadopago", "infinitepay" ou vazio para desativar
+
+  MPAccessToken:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Access token Mercado Pago (obrigatório se PaymentProvider=mercadopago)
+
+  MPNotificationURL:
+    Type: String
+    Default: ""
+    Description: URL de webhook Mercado Pago (ex. https://<api-id>.execute-api.us-east-1.amazonaws.com/api/v1/payments/webhook)
+
+  MPPixExpirationMinutes:
+    Type: Number
+    Default: 30
+    Description: Expiração do QR Code PIX em minutos
+
+  IPHandle:
+    Type: String
+    Default: ""
+    Description: Handle InfinitePay (obrigatório se PaymentProvider=infinitepay)
+
+  IPRedirectURL:
+    Type: String
+    Default: ""
+    Description: URL de redirect InfinitePay
+
+  IPWebhookURL:
+    Type: String
+    Default: ""
+    Description: URL de webhook InfinitePay
+
+  CORSAllowedOrigins:
+    Type: String
+    Default: "*"
+    Description: Origens CORS permitidas, separadas por vírgula
+
+  LambdaMemoryMB:
+    Type: Number
+    Default: 512
+    AllowedValues: [256, 512, 1024]
+    Description: Memória da função Lambda em MB
+
+
+# ──────────────────────────────────── Globals ─────────────────────────────────
+
+Globals:
+  Function:
+    Runtime: provided.al2023
+    Architectures: [arm64]
+    MemorySize: !Ref LambdaMemoryMB
+    # Limite de 29s: API Gateway HTTP API encerra a conexão após 29 segundos
+    Timeout: 29
+    Environment:
+      Variables:
+        LOG_FORMAT: json
+        LOG_LEVEL: info
+
+# ───────────────────────────────────── Resources ──────────────────────────────
+
+Resources:
+
+  # ──────────────────────────────── IAM Role ────────────────────────────────
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-lambda-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        # Logs no CloudWatch
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # ─────────────────────────────── Lambda Function ──────────────────────────
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      # sam build chamará `make build-ApiFunction` para compilar o binário arm64
+      BuildMethod: makefile
+    Properties:
+      CodeUri: .
+      Handler: bootstrap
+      Role: !GetAtt LambdaRole.Arn
+      Environment:
+        Variables:
+          DATABASE_URL: !Ref DatabaseURL
+          JWT_SECRET: !Ref JWTSecret
+          RUN_MIGRATIONS: !Ref RunMigrations
+          PAYMENT_PROVIDER: !Ref PaymentProvider
+          MP_ACCESS_TOKEN: !Ref MPAccessToken
+          MP_NOTIFICATION_URL: !Ref MPNotificationURL
+          MP_PIX_EXPIRATION_MINUTES: !Ref MPPixExpirationMinutes
+          IP_HANDLE: !Ref IPHandle
+          IP_REDIRECT_URL: !Ref IPRedirectURL
+          IP_WEBHOOK_URL: !Ref IPWebhookURL
+          CORS_ALLOWED_ORIGINS: !Ref CORSAllowedOrigins
+      Events:
+        ApiRoot:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /
+            Method: ANY
+        ApiProxy:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: ANY
+
+  # ────────────────────────── API Gateway HTTP API ──────────────────────────
+  # HTTP API (payload v2) é ~60% mais barato que REST API e tem menor latência.
+  # Stage "$default" não adiciona prefixo na URL — rotas batem direto em /api/v1/...
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: "$default"
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - Authorization
+          - Content-Type
+          - Accept
+
+# ──────────────────────────────────── Outputs ─────────────────────────────────
+
+Outputs:
+  ApiURL:
+    Description: URL base da API
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiURL"
+
+  HealthCheckURL:
+    Description: Endpoint de health check
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com/api/v1/health"
+
+  LambdaFunctionName:
+    Description: Nome da função Lambda
+    Value: !Ref ApiFunction
