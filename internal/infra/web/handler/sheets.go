@@ -36,7 +36,7 @@ func (h *SheetsHandler) ConnectStart(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusServiceUnavailable, "Integração Google Sheets não configurada.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro ao iniciar conexão com Google.")
+		respondInternalError(w, r, "sheets.handler.ConnectStart", err, "Erro ao iniciar conexão com Google.")
 		return
 	}
 	respondJSON(w, http.StatusOK, result)
@@ -72,7 +72,7 @@ func (h *SheetsHandler) Push(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusNotFound, "Integração Google não encontrada para este wedding.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro ao sincronizar dados para o Google Sheets.")
+		respondInternalError(w, r, "sheets.handler.Push", err, "Erro ao sincronizar dados para o Google Sheets.")
 		return
 	}
 	respondJSON(w, http.StatusOK, result)
@@ -89,7 +89,7 @@ func (h *SheetsHandler) Pull(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusNotFound, "Integração Google não encontrada para este wedding.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro ao importar dados do Google Sheets.")
+		respondInternalError(w, r, "sheets.handler.Pull", err, "Erro ao importar dados do Google Sheets.")
 		return
 	}
 	respondJSON(w, http.StatusOK, result)

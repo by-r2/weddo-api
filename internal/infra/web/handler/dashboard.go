@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/by-r2/weddo-api/internal/dto"
@@ -23,7 +24,7 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	rsvpStats, err := h.guestUC.Dashboard(r.Context(), weddingID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Erro ao buscar estatísticas.")
+		respondInternalError(w, r, "dashboard.handler.Get: rsvp stats", err, "Erro ao buscar estatísticas.")
 		return
 	}
 
@@ -44,6 +45,9 @@ func (h *DashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	giftStats, err := h.giftUC.Dashboard(r.Context(), weddingID)
+	if err != nil {
+		slog.Warn("dashboard: gift stats unavailable", "error", err, "wedding_id", weddingID)
+	}
 	if err == nil && giftStats.TotalGifts > 0 {
 		resp.Gifts = &dto.GiftStats{
 			TotalGifts:    giftStats.TotalGifts,

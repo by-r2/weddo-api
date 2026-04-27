@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -42,7 +43,7 @@ func (h *InvitationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Guests:    guestNames,
 	})
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Erro ao criar convite.")
+		respondInternalError(w, r, "invitation.handler.Create", err, "Erro ao criar convite.")
 		return
 	}
 
@@ -55,11 +56,11 @@ func (h *InvitationHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	inv, err := h.invUC.FindByID(r.Context(), weddingID, id)
 	if err != nil {
-		if err == entity.ErrNotFound {
+		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Convite não encontrado.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro interno do servidor.")
+		respondInternalError(w, r, "invitation.handler.GetByID", err, "Erro interno do servidor.")
 		return
 	}
 
@@ -73,7 +74,7 @@ func (h *InvitationHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	invitations, total, err := h.invUC.List(r.Context(), weddingID, page, perPage, search)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Erro ao listar convites.")
+		respondInternalError(w, r, "invitation.handler.List", err, "Erro ao listar convites.")
 		return
 	}
 
@@ -107,11 +108,11 @@ func (h *InvitationHandler) Update(w http.ResponseWriter, r *http.Request) {
 		Notes:     req.Notes,
 	})
 	if err != nil {
-		if err == entity.ErrNotFound {
+		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Convite não encontrado.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro ao atualizar convite.")
+		respondInternalError(w, r, "invitation.handler.Update", err, "Erro ao atualizar convite.")
 		return
 	}
 
@@ -123,11 +124,11 @@ func (h *InvitationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if err := h.invUC.Delete(r.Context(), weddingID, id); err != nil {
-		if err == entity.ErrNotFound {
+		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Convite não encontrado.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro ao remover convite.")
+		respondInternalError(w, r, "invitation.handler.Delete", err, "Erro ao remover convite.")
 		return
 	}
 
@@ -146,11 +147,11 @@ func (h *InvitationHandler) AddGuest(w http.ResponseWriter, r *http.Request) {
 
 	guest, err := h.invUC.AddGuest(r.Context(), weddingID, invID, req.Name, req.Phone, req.Email)
 	if err != nil {
-		if err == entity.ErrNotFound {
+		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Convite não encontrado.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro ao adicionar convidado.")
+		respondInternalError(w, r, "invitation.handler.AddGuest", err, "Erro ao adicionar convidado.")
 		return
 	}
 

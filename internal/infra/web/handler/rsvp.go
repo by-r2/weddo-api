@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -30,11 +31,11 @@ func (h *RSVPHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 
 	guest, inv, alreadyConfirmed, err := h.rsvpUC.Confirm(r.Context(), weddingID, req.Name)
 	if err != nil {
-		if err == entity.ErrNotFound {
+		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Convidado não encontrado. Verifique se o nome está exatamente como no convite.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro interno do servidor.")
+		respondInternalError(w, r, "rsvp.handler.Confirm", err, "Erro interno do servidor.")
 		return
 	}
 
@@ -58,11 +59,11 @@ func (h *RSVPHandler) GetInvitation(w http.ResponseWriter, r *http.Request) {
 
 	inv, guests, err := h.rsvpUC.FindInvitationByID(r.Context(), weddingID, invitationID)
 	if err != nil {
-		if err == entity.ErrNotFound {
+		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Convite não encontrado.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro interno do servidor.")
+		respondInternalError(w, r, "rsvp.handler.GetInvitation", err, "Erro interno do servidor.")
 		return
 	}
 
@@ -88,11 +89,11 @@ func (h *RSVPHandler) LookupInvitation(w http.ResponseWriter, r *http.Request) {
 
 	inv, guests, err := h.rsvpUC.LookupInvitation(r.Context(), weddingID, name)
 	if err != nil {
-		if err == entity.ErrNotFound {
+		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Convidado não encontrado. Verifique se o nome está exatamente como no convite.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro interno do servidor.")
+		respondInternalError(w, r, "rsvp.handler.LookupInvitation", err, "Erro interno do servidor.")
 		return
 	}
 

@@ -3,6 +3,8 @@ package middleware
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -21,10 +23,16 @@ func TenantResolver(weddingRepo repository.WeddingRepository) func(http.Handler)
 
 			wedding, err := weddingRepo.FindByID(r.Context(), weddingID)
 			if err != nil {
-				if err == entity.ErrNotFound {
+				if errors.Is(err, entity.ErrNotFound) {
 					notFound(w, "Casamento não encontrado")
 					return
 				}
+				slog.Error("tenant resolver: failed to load wedding",
+					"error", err,
+					"wedding_id", weddingID,
+					"method", r.Method,
+					"path", r.URL.Path,
+				)
 				serverError(w)
 				return
 			}

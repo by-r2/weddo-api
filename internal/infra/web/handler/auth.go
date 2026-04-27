@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/by-r2/weddo-api/internal/domain/entity"
@@ -34,11 +35,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Slug:         req.Slug,
 	})
 	if err != nil {
-		if err == entity.ErrAlreadyExists {
+		if errors.Is(err, entity.ErrAlreadyExists) {
 			respondError(w, http.StatusConflict, "Já existe uma conta cadastrada com este email.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro interno do servidor.")
+		respondInternalError(w, r, "auth.handler.Register", err, "Erro interno do servidor.")
 		return
 	}
 
@@ -74,11 +75,11 @@ func (h *AuthHandler) RegisterGoogle(w http.ResponseWriter, r *http.Request) {
 		Picture:      info.Picture,
 	})
 	if err != nil {
-		if err == entity.ErrAlreadyExists {
+		if errors.Is(err, entity.ErrAlreadyExists) {
 			respondError(w, http.StatusConflict, "Já existe uma conta cadastrada com este email ou conta Google.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro interno do servidor.")
+		respondInternalError(w, r, "auth.handler.RegisterGoogle", err, "Erro interno do servidor.")
 		return
 	}
 
@@ -94,11 +95,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.weddingUC.Authenticate(r.Context(), req.Email, req.Password)
 	if err != nil {
-		if err == entity.ErrUnauthorized {
+		if errors.Is(err, entity.ErrUnauthorized) {
 			respondError(w, http.StatusUnauthorized, "Email ou senha incorretos.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro interno do servidor.")
+		respondInternalError(w, r, "auth.handler.Login", err, "Erro interno do servidor.")
 		return
 	}
 
@@ -125,11 +126,11 @@ func (h *AuthHandler) LoginGoogle(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.weddingUC.AuthenticateGoogle(r.Context(), info.GoogleID, info.Email, info.Name, info.Picture)
 	if err != nil {
-		if err == entity.ErrUnauthorized {
+		if errors.Is(err, entity.ErrUnauthorized) {
 			respondError(w, http.StatusUnauthorized, "Conta não encontrada. Registre-se primeiro ou peça um convite ao administrador do casamento.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro interno do servidor.")
+		respondInternalError(w, r, "auth.handler.LoginGoogle", err, "Erro interno do servidor.")
 		return
 	}
 

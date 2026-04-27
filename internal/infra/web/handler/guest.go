@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -24,11 +25,11 @@ func (h *GuestHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	g, err := h.guestUC.FindByID(r.Context(), weddingID, id)
 	if err != nil {
-		if err == entity.ErrNotFound {
+		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Convidado não encontrado.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro interno do servidor.")
+		respondInternalError(w, r, "guest.handler.GetByID", err, "Erro interno do servidor.")
 		return
 	}
 
@@ -43,7 +44,7 @@ func (h *GuestHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	guests, total, err := h.guestUC.List(r.Context(), weddingID, page, perPage, status, search)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Erro ao listar convidados.")
+		respondInternalError(w, r, "guest.handler.List", err, "Erro ao listar convidados.")
 		return
 	}
 
@@ -77,11 +78,11 @@ func (h *GuestHandler) Update(w http.ResponseWriter, r *http.Request) {
 		Status:    req.Status,
 	})
 	if err != nil {
-		if err == entity.ErrNotFound {
+		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Convidado não encontrado.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro ao atualizar convidado.")
+		respondInternalError(w, r, "guest.handler.Update", err, "Erro ao atualizar convidado.")
 		return
 	}
 
@@ -93,11 +94,11 @@ func (h *GuestHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if err := h.guestUC.Delete(r.Context(), weddingID, id); err != nil {
-		if err == entity.ErrNotFound {
+		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Convidado não encontrado.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro ao remover convidado.")
+		respondInternalError(w, r, "guest.handler.Delete", err, "Erro ao remover convidado.")
 		return
 	}
 

@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -60,16 +61,15 @@ func (h *PaymentHandler) Purchase(w http.ResponseWriter, r *http.Request) {
 		RedirectURL:     req.RedirectURL,
 	})
 	if err != nil {
-		if err == entity.ErrNotFound {
+		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Presente não encontrado.")
 			return
 		}
-		if err == paymentuc.ErrGiftUnavailable {
+		if errors.Is(err, paymentuc.ErrGiftUnavailable) {
 			respondError(w, http.StatusConflict, "Este presente já foi comprado.")
 			return
 		}
-		slog.Error("payment.Purchase", "error", err)
-		respondError(w, http.StatusInternalServerError, "Erro ao processar pagamento.")
+		respondInternalError(w, r, "payment.handler.Purchase", err, "Erro ao processar pagamento.")
 		return
 	}
 
@@ -125,12 +125,11 @@ func (h *PaymentHandler) PurchaseCash(w http.ResponseWriter, r *http.Request) {
 		RedirectURL:     req.RedirectURL,
 	})
 	if err != nil {
-		if err == paymentuc.ErrCashAmountOutOfRange {
+		if errors.Is(err, paymentuc.ErrCashAmountOutOfRange) {
 			respondError(w, http.StatusBadRequest, "Valor inválido. Use entre R$ 1,00 e R$ 100.000,00.")
 			return
 		}
-		slog.Error("payment.PurchaseCash", "error", err)
-		respondError(w, http.StatusInternalServerError, "Erro ao processar pagamento.")
+		respondInternalError(w, r, "payment.handler.PurchaseCash", err, "Erro ao processar pagamento.")
 		return
 	}
 
@@ -165,11 +164,11 @@ func (h *PaymentHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
 
 	p, giftName, err := h.paymentUC.GetStatus(r.Context(), weddingID, id)
 	if err != nil {
-		if err == entity.ErrNotFound {
+		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Pagamento não encontrado.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro interno do servidor.")
+		respondInternalError(w, r, "payment.handler.GetStatus", err, "Erro interno do servidor.")
 		return
 	}
 
@@ -287,7 +286,7 @@ func (h *PaymentHandler) ListAdmin(w http.ResponseWriter, r *http.Request) {
 
 	payments, total, err := h.paymentUC.List(r.Context(), weddingID, page, perPage, status, giftID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Erro ao listar pagamentos.")
+		respondInternalError(w, r, "payment.handler.ListAdmin", err, "Erro ao listar pagamentos.")
 		return
 	}
 
@@ -311,11 +310,11 @@ func (h *PaymentHandler) GetAdmin(w http.ResponseWriter, r *http.Request) {
 
 	p, err := h.paymentUC.FindByID(r.Context(), weddingID, id)
 	if err != nil {
-		if err == entity.ErrNotFound {
+		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Pagamento não encontrado.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro interno do servidor.")
+		respondInternalError(w, r, "payment.handler.GetAdmin", err, "Erro interno do servidor.")
 		return
 	}
 

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -26,7 +27,7 @@ func (h *GiftHandler) ListPublic(w http.ResponseWriter, r *http.Request) {
 
 	gifts, total, err := h.giftUC.List(r.Context(), weddingID, page, perPage, category, string(entity.GiftStatusAvailable), search)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Erro ao listar presentes.")
+		respondInternalError(w, r, "gift.handler.ListPublic", err, "Erro ao listar presentes.")
 		return
 	}
 
@@ -47,11 +48,11 @@ func (h *GiftHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 
 	g, err := h.giftUC.FindByID(r.Context(), weddingID, id)
 	if err != nil {
-		if err == entity.ErrNotFound {
+		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Presente não encontrado.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro interno do servidor.")
+		respondInternalError(w, r, "gift.handler.GetPublic", err, "Erro interno do servidor.")
 		return
 	}
 
@@ -76,7 +77,7 @@ func (h *GiftHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Category:    req.Category,
 	})
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Erro ao criar presente.")
+		respondInternalError(w, r, "gift.handler.Create", err, "Erro ao criar presente.")
 		return
 	}
 
@@ -92,7 +93,7 @@ func (h *GiftHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	gifts, total, err := h.giftUC.List(r.Context(), weddingID, page, perPage, category, status, search)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Erro ao listar presentes.")
+		respondInternalError(w, r, "gift.handler.List", err, "Erro ao listar presentes.")
 		return
 	}
 
@@ -113,11 +114,11 @@ func (h *GiftHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	g, err := h.giftUC.FindByID(r.Context(), weddingID, id)
 	if err != nil {
-		if err == entity.ErrNotFound {
+		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Presente não encontrado.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro interno do servidor.")
+		respondInternalError(w, r, "gift.handler.GetByID", err, "Erro interno do servidor.")
 		return
 	}
 
@@ -145,11 +146,11 @@ func (h *GiftHandler) Update(w http.ResponseWriter, r *http.Request) {
 		Status:      req.Status,
 	})
 	if err != nil {
-		if err == entity.ErrNotFound {
+		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Presente não encontrado.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro ao atualizar presente.")
+		respondInternalError(w, r, "gift.handler.Update", err, "Erro ao atualizar presente.")
 		return
 	}
 
@@ -161,11 +162,11 @@ func (h *GiftHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if err := h.giftUC.Delete(r.Context(), weddingID, id); err != nil {
-		if err == entity.ErrNotFound {
+		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Presente não encontrado.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro ao remover presente.")
+		respondInternalError(w, r, "gift.handler.Delete", err, "Erro ao remover presente.")
 		return
 	}
 

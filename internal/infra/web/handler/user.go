@@ -31,11 +31,11 @@ func (h *UserHandler) Invite(w http.ResponseWriter, r *http.Request) {
 
 	u, err := h.userUC.Invite(r.Context(), weddingID, req.Email, req.Name)
 	if err != nil {
-		if err == entity.ErrAlreadyExists {
+		if errors.Is(err, entity.ErrAlreadyExists) {
 			respondError(w, http.StatusConflict, "Este email já está vinculado a um casamento.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro ao convidar usuário.")
+		respondInternalError(w, r, "user.handler.Invite", err, "Erro ao convidar usuário.")
 		return
 	}
 
@@ -47,7 +47,7 @@ func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	users, err := h.userUC.List(r.Context(), weddingID)
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, "Erro ao listar usuários.")
+		respondInternalError(w, r, "user.handler.List", err, "Erro ao listar usuários.")
 		return
 	}
 
@@ -72,7 +72,7 @@ func (h *UserHandler) Remove(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusForbidden, "Não é possível remover o último administrador do casamento.")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "Erro ao remover usuário.")
+		respondInternalError(w, r, "user.handler.Remove", err, "Erro ao remover usuário.")
 		return
 	}
 
