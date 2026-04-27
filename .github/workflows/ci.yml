@@ -27,6 +27,8 @@ jobs:
         run: go vet ./...
 
       - name: test
+        env:
+          CGO_ENABLED: "1"
         run: go test ./... -v -race
 
   deploy:
