@@ -131,6 +131,8 @@ type PurchaseResponse struct {
 type PaymentResponse struct {
 	ID            string  `json:"id"`
 	GiftID        string  `json:"gift_id"`
+	GiftKind      string  `json:"gift_kind,omitempty"` // "gift" | "cash"
+	GiftName      string  `json:"gift_name,omitempty"` // nome do item ou "Contribuição em dinheiro"
 	ProviderID    string  `json:"provider_id,omitempty"`
 	Amount        float64 `json:"amount"`
 	Status        string  `json:"status"`

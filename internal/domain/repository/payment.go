@@ -9,6 +9,8 @@ import (
 type PaymentRepository interface {
 	Create(ctx context.Context, payment *entity.Payment) error
 	FindByID(ctx context.Context, weddingID, id string) (*entity.Payment, error)
+	// FindByIDAny busca pelo id do pagamento (ex.: webhooks que enviam order_nsu = payment.id).
+	FindByIDAny(ctx context.Context, id string) (*entity.Payment, error)
 	FindByProviderID(ctx context.Context, providerID string) (*entity.Payment, error)
 	List(ctx context.Context, weddingID string, page, perPage int, status, giftID string) ([]entity.Payment, int, error)
 	Update(ctx context.Context, payment *entity.Payment) error

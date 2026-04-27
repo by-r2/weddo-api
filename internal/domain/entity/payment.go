@@ -2,6 +2,9 @@ package entity
 
 import "time"
 
+// PaymentCashGiftLabel rótulo exibido para pagamentos sem item em `gifts` (contribuição em dinheiro).
+const PaymentCashGiftLabel = "Contribuição em dinheiro"
+
 type PaymentStatus string
 
 const (

@@ -80,6 +80,7 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 			r.Get("/gifts", giftHandler.ListPublic)
 			r.Get("/gifts/{id}", giftHandler.GetPublic)
 			r.Post("/gifts/{id}/purchase", paymentHandler.Purchase)
+			r.Post("/cash-gift/purchase", paymentHandler.PurchaseCash)
 			r.Get("/payments/{id}/status", paymentHandler.GetStatus)
 		})
 

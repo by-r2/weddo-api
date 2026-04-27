@@ -425,9 +425,17 @@ func paymentsToSheet(items []entity.Payment, giftByID map[string]entity.Gift) []
 		if p.PaidAt != nil {
 			paidAt = p.PaidAt.Format(time.RFC3339)
 		}
+		giftLabel := entity.PaymentCashGiftLabel
+		if p.GiftID != "" {
+			if g, ok := giftByID[p.GiftID]; ok {
+				giftLabel = g.Name
+			} else {
+				giftLabel = "(presente removido)"
+			}
+		}
 		rows = append(rows, []any{
 			p.ID,
-			giftByID[p.GiftID].Name,
+			giftLabel,
 			p.PayerName,
 			p.Amount,
 			string(p.PaymentMethod),

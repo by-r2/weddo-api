@@ -23,8 +23,13 @@ func (r *paymentRepository) Create(ctx context.Context, p *entity.Payment) error
 			payer_name, payer_email, message, pix_qr_code, pix_expiration, paid_at, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`
 
+	var giftID any
+	if p.GiftID != "" {
+		giftID = p.GiftID
+	}
+
 	_, err := r.db.ExecContext(ctx, query,
-		p.ID, p.GiftID, p.WeddingID, p.ProviderID, p.Amount, p.Status, p.PaymentMethod,
+		p.ID, giftID, p.WeddingID, p.ProviderID, p.Amount, p.Status, p.PaymentMethod,
 		p.PayerName, p.PayerEmail, p.Message, p.PixQRCode, p.PixExpiration,
 		p.PaidAt, p.CreatedAt, p.UpdatedAt,
 	)
@@ -41,6 +46,15 @@ func (r *paymentRepository) FindByID(ctx context.Context, weddingID, id string) 
 		FROM payments WHERE wedding_id = $1 AND id = $2`
 
 	return r.scanPayment(r.db.QueryRowContext(ctx, query, weddingID, id))
+}
+
+func (r *paymentRepository) FindByIDAny(ctx context.Context, id string) (*entity.Payment, error) {
+	query := `
+		SELECT id, gift_id, wedding_id, provider_id, amount, status, payment_method,
+			payer_name, payer_email, message, pix_qr_code, pix_expiration, paid_at, created_at, updated_at
+		FROM payments WHERE id = $1`
+
+	return r.scanPayment(r.db.QueryRowContext(ctx, query, id))
 }
 
 func (r *paymentRepository) FindByProviderID(ctx context.Context, providerID string) (*entity.Payment, error) {
@@ -69,7 +83,10 @@ func (r *paymentRepository) List(ctx context.Context, weddingID string, page, pe
 		args = append(args, status)
 		paramIdx++
 	}
-	if giftID != "" {
+	if giftID == "cash" {
+		countQuery += ` AND gift_id IS NULL`
+		listQuery += ` AND gift_id IS NULL`
+	} else if giftID != "" {
 		f := fmt.Sprintf(` AND gift_id = $%d`, paramIdx)
 		countQuery += f
 		listQuery += f
@@ -94,12 +111,8 @@ func (r *paymentRepository) List(ctx context.Context, weddingID string, page, pe
 
 	var payments []entity.Payment
 	for rows.Next() {
-		var p entity.Payment
-		if err := rows.Scan(
-			&p.ID, &p.GiftID, &p.WeddingID, &p.ProviderID, &p.Amount, &p.Status, &p.PaymentMethod,
-			&p.PayerName, &p.PayerEmail, &p.Message, &p.PixQRCode, &p.PixExpiration,
-			&p.PaidAt, &p.CreatedAt, &p.UpdatedAt,
-		); err != nil {
+		p, err := scanPaymentFromRows(rows)
+		if err != nil {
 			return nil, 0, fmt.Errorf("paymentRepository.List: scan: %w", err)
 		}
 		payments = append(payments, p)
@@ -139,12 +152,7 @@ func (r *paymentRepository) SumByWedding(ctx context.Context, weddingID string) 
 }
 
 func (r *paymentRepository) scanPayment(row *sql.Row) (*entity.Payment, error) {
-	var p entity.Payment
-	err := row.Scan(
-		&p.ID, &p.GiftID, &p.WeddingID, &p.ProviderID, &p.Amount, &p.Status, &p.PaymentMethod,
-		&p.PayerName, &p.PayerEmail, &p.Message, &p.PixQRCode, &p.PixExpiration,
-		&p.PaidAt, &p.CreatedAt, &p.UpdatedAt,
-	)
+	p, err := scanPaymentFields(row.Scan)
 	if err == sql.ErrNoRows {
 		return nil, entity.ErrNotFound
 	}
@@ -152,4 +160,22 @@ func (r *paymentRepository) scanPayment(row *sql.Row) (*entity.Payment, error) {
 		return nil, fmt.Errorf("paymentRepository.scanPayment: %w", err)
 	}
 	return &p, nil
+}
+
+func scanPaymentFromRows(rows *sql.Rows) (entity.Payment, error) {
+	return scanPaymentFields(rows.Scan)
+}
+
+func scanPaymentFields(scan func(dest ...any) error) (entity.Payment, error) {
+	var p entity.Payment
+	var giftID sql.NullString
+	err := scan(
+		&p.ID, &giftID, &p.WeddingID, &p.ProviderID, &p.Amount, &p.Status, &p.PaymentMethod,
+		&p.PayerName, &p.PayerEmail, &p.Message, &p.PixQRCode, &p.PixExpiration,
+		&p.PaidAt, &p.CreatedAt, &p.UpdatedAt,
+	)
+	if giftID.Valid {
+		p.GiftID = giftID.String
+	}
+	return p, err
 }

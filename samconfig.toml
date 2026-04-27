@@ -1,4 +1,5 @@
 # Configuração do SAM CLI para weddo-api
+# CI/CD (GitHub Actions) usa infra/sam/params/*.txt + segredos — ver .github/workflows/ci-deploy.yml
 # Documentação: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html
 
 version = 0.1

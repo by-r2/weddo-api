@@ -1,0 +1,7 @@
+# Parâmetros não secretos do stack prod — espelha o padrão nubo-platform-api (infra/sam/params).
+# Segredos (DatabaseURL, JWT, tokens OAuth/MP) vêm apenas do CI (GitHub Secrets) ou do .env local.
+#
+Stage=prod
+RunMigrations=false
+LambdaMemoryMB=512
+MPPixExpirationMinutes=30

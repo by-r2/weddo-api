@@ -1,0 +1,5 @@
+# Parâmetros não secretos para stack dev — habilite o job deploy-dev no workflow quando for usar.
+Stage=dev
+RunMigrations=false
+LambdaMemoryMB=512
+MPPixExpirationMinutes=30

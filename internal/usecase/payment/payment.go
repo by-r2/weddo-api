@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,6 +15,12 @@ import (
 )
 
 var ErrGiftUnavailable = errors.New("presente não está disponível")
+
+// ErrCashAmountOutOfRange valor fora dos limites de contribuição em dinheiro.
+var ErrCashAmountOutOfRange = errors.New("valor deve estar entre R$ 1,00 e R$ 100.000,00")
+
+const minCashGiftBRL = 1.0
+const maxCashGiftBRL = 100_000.0
 
 type UseCase struct {
 	paymentRepo repository.PaymentRepository
@@ -33,6 +40,20 @@ func (uc *UseCase) ProviderName() string {
 type PurchaseInput struct {
 	WeddingID       string
 	GiftID          string
+	PayerName       string
+	PayerEmail      string
+	Message         string
+	PaymentMethod   string
+	CardToken       string
+	PaymentMethodID string
+	Installments    int
+	RedirectURL     string
+}
+
+// PurchaseCashInput inicia pagamento de contribuição em dinheiro (sem item em gifts).
+type PurchaseCashInput struct {
+	WeddingID       string
+	Amount          float64
 	PayerName       string
 	PayerEmail      string
 	Message         string
@@ -119,10 +140,75 @@ func (uc *UseCase) Purchase(ctx context.Context, input PurchaseInput) (*Purchase
 	}, nil
 }
 
+// PurchaseCash cria um pagamento só com valor (PIX/cartão via gateway), sem reservar presente físico.
+func (uc *UseCase) PurchaseCash(ctx context.Context, input PurchaseCashInput) (*PurchaseResult, error) {
+	amount := math.Round(input.Amount*100) / 100
+	if amount < minCashGiftBRL || amount > maxCashGiftBRL {
+		return nil, ErrCashAmountOutOfRange
+	}
+
+	now := time.Now()
+	p := &entity.Payment{
+		ID:            uuid.New().String(),
+		GiftID:        "",
+		WeddingID:     input.WeddingID,
+		Amount:        amount,
+		Status:        entity.PaymentStatusPending,
+		PaymentMethod: entity.PaymentMethod(input.PaymentMethod),
+		PayerName:     input.PayerName,
+		PayerEmail:    input.PayerEmail,
+		Message:       input.Message,
+		CreatedAt:     now,
+		UpdatedAt:     now,
+	}
+
+	gwInput := gw.CreatePaymentInput{
+		Amount:            amount,
+		Description:       entity.PaymentCashGiftLabel,
+		PayerName:         input.PayerName,
+		PayerEmail:        input.PayerEmail,
+		PaymentMethod:     input.PaymentMethod,
+		ExternalReference: p.ID,
+		CardToken:         input.CardToken,
+		PaymentMethodID:   input.PaymentMethodID,
+		Installments:      input.Installments,
+		RedirectURL:       input.RedirectURL,
+	}
+
+	gwResult, err := uc.gateway.CreatePayment(ctx, gwInput)
+	if err != nil {
+		return nil, fmt.Errorf("payment.PurchaseCash: gateway: %w", err)
+	}
+
+	p.ProviderID = gwResult.ProviderID
+	p.Status = mapProviderStatus(gwResult.Status)
+	p.PixQRCode = gwResult.QRCode
+	p.PixExpiration = gwResult.ExpiresAt
+
+	if p.Status == entity.PaymentStatusApproved {
+		p.PaidAt = &now
+	}
+
+	if err := uc.paymentRepo.Create(ctx, p); err != nil {
+		return nil, fmt.Errorf("payment.PurchaseCash: save: %w", err)
+	}
+
+	return &PurchaseResult{
+		Payment:      p,
+		QRCode:       gwResult.QRCode,
+		QRCodeBase64: gwResult.QRCodeBase64,
+		CheckoutURL:  gwResult.CheckoutURL,
+	}, nil
+}
+
 func (uc *UseCase) GetStatus(ctx context.Context, weddingID, paymentID string) (*entity.Payment, string, error) {
 	p, err := uc.paymentRepo.FindByID(ctx, weddingID, paymentID)
 	if err != nil {
 		return nil, "", err
+	}
+
+	if p.GiftID == "" {
+		return p, entity.PaymentCashGiftLabel, nil
 	}
 
 	gift, err := uc.giftRepo.FindByID(ctx, weddingID, p.GiftID)
@@ -131,6 +217,18 @@ func (uc *UseCase) GetStatus(ctx context.Context, weddingID, paymentID string) (
 	}
 
 	return p, gift.Name, nil
+}
+
+// ResolveGiftDisplayName rótulo do “presente” para UI admin (ou nome do item, ou contribuição em dinheiro).
+func (uc *UseCase) ResolveGiftDisplayName(ctx context.Context, weddingID string, p *entity.Payment) string {
+	if p.GiftID == "" {
+		return entity.PaymentCashGiftLabel
+	}
+	g, err := uc.giftRepo.FindByID(ctx, weddingID, p.GiftID)
+	if err != nil {
+		return "Presente"
+	}
+	return g.Name
 }
 
 // HandleWebhook processa notificação do provedor de pagamento.
@@ -158,23 +256,27 @@ func (uc *UseCase) HandleWebhook(ctx context.Context, providerID string) error {
 	if newStatus == entity.PaymentStatusApproved && p.PaidAt == nil {
 		p.PaidAt = &now
 
-		gift, err := uc.giftRepo.FindByID(ctx, p.WeddingID, p.GiftID)
-		if err == nil && gift.Status == entity.GiftStatusAvailable {
-			gift.Status = entity.GiftStatusPurchased
-			gift.UpdatedAt = now
-			if err := uc.giftRepo.Update(ctx, gift); err != nil {
-				slog.Error("payment.HandleWebhook: failed to mark gift", "gift_id", gift.ID, "error", err)
+		if p.GiftID != "" {
+			gift, err := uc.giftRepo.FindByID(ctx, p.WeddingID, p.GiftID)
+			if err == nil && gift.Status == entity.GiftStatusAvailable {
+				gift.Status = entity.GiftStatusPurchased
+				gift.UpdatedAt = now
+				if err := uc.giftRepo.Update(ctx, gift); err != nil {
+					slog.Error("payment.HandleWebhook: failed to mark gift", "gift_id", gift.ID, "error", err)
+				}
 			}
 		}
 	}
 
 	if newStatus == entity.PaymentStatusExpired || newStatus == entity.PaymentStatusRejected {
-		gift, err := uc.giftRepo.FindByID(ctx, p.WeddingID, p.GiftID)
-		if err == nil && gift.Status == entity.GiftStatusPurchased {
-			gift.Status = entity.GiftStatusAvailable
-			gift.UpdatedAt = now
-			if err := uc.giftRepo.Update(ctx, gift); err != nil {
-				slog.Error("payment.HandleWebhook: failed to revert gift", "gift_id", gift.ID, "error", err)
+		if p.GiftID != "" {
+			gift, err := uc.giftRepo.FindByID(ctx, p.WeddingID, p.GiftID)
+			if err == nil && gift.Status == entity.GiftStatusPurchased {
+				gift.Status = entity.GiftStatusAvailable
+				gift.UpdatedAt = now
+				if err := uc.giftRepo.Update(ctx, gift); err != nil {
+					slog.Error("payment.HandleWebhook: failed to revert gift", "gift_id", gift.ID, "error", err)
+				}
 			}
 		}
 	}
@@ -190,7 +292,7 @@ func (uc *UseCase) HandleWebhook(ctx context.Context, providerID string) error {
 // HandleInfinitePayWebhook processa a notificação direta da InfinitePay.
 // A InfinitePay envia order_nsu (nosso payment ID) diretamente no payload.
 func (uc *UseCase) HandleInfinitePayWebhook(ctx context.Context, orderNSU, invoiceSlug string, paid bool) error {
-	p, err := uc.paymentRepo.FindByID(ctx, "", orderNSU)
+	p, err := uc.paymentRepo.FindByIDAny(ctx, orderNSU)
 	if err != nil {
 		p, err = uc.paymentRepo.FindByProviderID(ctx, invoiceSlug)
 		if err != nil {
@@ -216,12 +318,14 @@ func (uc *UseCase) HandleInfinitePayWebhook(ctx context.Context, orderNSU, invoi
 	if newStatus == entity.PaymentStatusApproved && p.PaidAt == nil {
 		p.PaidAt = &now
 
-		gift, err := uc.giftRepo.FindByID(ctx, p.WeddingID, p.GiftID)
-		if err == nil && gift.Status == entity.GiftStatusAvailable {
-			gift.Status = entity.GiftStatusPurchased
-			gift.UpdatedAt = now
-			if err := uc.giftRepo.Update(ctx, gift); err != nil {
-				slog.Error("payment.HandleIPWebhook: failed to mark gift", "gift_id", gift.ID, "error", err)
+		if p.GiftID != "" {
+			gift, err := uc.giftRepo.FindByID(ctx, p.WeddingID, p.GiftID)
+			if err == nil && gift.Status == entity.GiftStatusAvailable {
+				gift.Status = entity.GiftStatusPurchased
+				gift.UpdatedAt = now
+				if err := uc.giftRepo.Update(ctx, gift); err != nil {
+					slog.Error("payment.HandleIPWebhook: failed to mark gift", "gift_id", gift.ID, "error", err)
+				}
 			}
 		}
 	}

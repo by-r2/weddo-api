@@ -1,0 +1,227 @@
+# CI: build, vet, test. Deploy: push em main (SAM + prod). Dev preparado, desativado.
+name: CI and Deploy
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-deploy-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CGO_ENABLED: "0"
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        env:
+          CGO_ENABLED: "1"
+        run: go test ./... -v -race
+
+  deploy-prod:
+    name: Deploy (prod)
+    needs: [ci]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      MP_ACCESS_TOKEN: ${{ secrets.MP_ACCESS_TOKEN }}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+      GOOGLE_OAUTH_TOKEN_CIPHER_KEY: ${{ secrets.GOOGLE_OAUTH_TOKEN_CIPHER_KEY }}
+      PAYMENT_PROVIDER: ${{ vars.PAYMENT_PROVIDER }}
+      MP_NOTIFICATION_URL: ${{ vars.MP_NOTIFICATION_URL }}
+      IP_HANDLE: ${{ vars.IP_HANDLE }}
+      IP_REDIRECT_URL: ${{ vars.IP_REDIRECT_URL }}
+      IP_WEBHOOK_URL: ${{ vars.IP_WEBHOOK_URL }}
+      CORS_ALLOWED_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS }}
+      GOOGLE_OAUTH_CLIENT_ID: ${{ vars.GOOGLE_OAUTH_CLIENT_ID }}
+      GOOGLE_OAUTH_REDIRECT_URL: ${{ vars.GOOGLE_OAUTH_REDIRECT_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Setup SAM CLI
+        uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: Configure AWS (access keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: SAM validate & build
+        run: |
+          sam validate -t template.yaml
+          sam build -t template.yaml
+
+      - name: SAM deploy (prod)
+        run: |
+          set -euo pipefail
+          STAGE=prod
+          PARAM_FILE="infra/sam/params/${STAGE}.txt"
+          STACK_NAME="weddo-api-${STAGE}"
+          OVERRIDES_FILE=$(mktemp /tmp/sam-overrides-XXXXXX.yaml)
+          trap 'rm -f "$OVERRIDES_FILE"' EXIT
+
+          append_kv() { printf '%s: "%s"\n' "$1" "$2" >> "$OVERRIDES_FILE"; }
+
+          append_kv DatabaseURL "${DATABASE_URL}"
+          append_kv JWTSecret "${JWT_SECRET}"
+          append_kv MPAccessToken "${MP_ACCESS_TOKEN:-}"
+          append_kv GoogleOAuthClientSecret "${GOOGLE_OAUTH_CLIENT_SECRET:-}"
+          append_kv GoogleOAuthTokenCipherKey "${GOOGLE_OAUTH_TOKEN_CIPHER_KEY:-}"
+          append_kv PaymentProvider "${PAYMENT_PROVIDER:-}"
+          append_kv MPNotificationURL "${MP_NOTIFICATION_URL:-}"
+          append_kv IPHandle "${IP_HANDLE:-}"
+          append_kv IPRedirectURL "${IP_REDIRECT_URL:-}"
+          append_kv IPWebhookURL "${IP_WEBHOOK_URL:-}"
+          append_kv CORSAllowedOrigins "${CORS_ALLOWED_ORIGINS:-*}"
+          append_kv GoogleOAuthClientId "${GOOGLE_OAUTH_CLIENT_ID:-}"
+          append_kv GoogleOAuthRedirectURL "${GOOGLE_OAUTH_REDIRECT_URL:-}"
+
+          while IFS= read -r line; do
+            line="${line%%$'\r'}"
+            line="${line#"${line%%[![:space:]]*}"}"
+            [[ -z "$line" || "$line" == \#* ]] && continue
+            key="${line%%=*}"
+            value="${line#*=}"
+            printf '%s: "%s"\n' "$key" "$value" >> "$OVERRIDES_FILE"
+          done < "$PARAM_FILE"
+
+          echo "==> Stack: $STACK_NAME"
+
+          sam deploy \
+            --template-file ".aws-sam/build/template.yaml" \
+            --stack-name "$STACK_NAME" \
+            --s3-prefix weddo-api \
+            --resolve-s3 \
+            --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset \
+            --no-confirm-changeset \
+            --parameter-overrides "file://$OVERRIDES_FILE"
+
+  deploy-dev:
+    name: Deploy (dev) — desativado
+    needs: [ci]
+    if: false
+    runs-on: ubuntu-latest
+    environment: development
+    permissions:
+      contents: read
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      MP_ACCESS_TOKEN: ${{ secrets.MP_ACCESS_TOKEN }}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+      GOOGLE_OAUTH_TOKEN_CIPHER_KEY: ${{ secrets.GOOGLE_OAUTH_TOKEN_CIPHER_KEY }}
+      PAYMENT_PROVIDER: ${{ vars.PAYMENT_PROVIDER }}
+      MP_NOTIFICATION_URL: ${{ vars.MP_NOTIFICATION_URL }}
+      IP_HANDLE: ${{ vars.IP_HANDLE }}
+      IP_REDIRECT_URL: ${{ vars.IP_REDIRECT_URL }}
+      IP_WEBHOOK_URL: ${{ vars.IP_WEBHOOK_URL }}
+      CORS_ALLOWED_ORIGINS: ${{ vars.CORS_ALLOWED_ORIGINS }}
+      GOOGLE_OAUTH_CLIENT_ID: ${{ vars.GOOGLE_OAUTH_CLIENT_ID }}
+      GOOGLE_OAUTH_REDIRECT_URL: ${{ vars.GOOGLE_OAUTH_REDIRECT_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Setup SAM CLI
+        uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: Configure AWS (access keys — dev)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: SAM validate & build
+        run: |
+          sam validate -t template.yaml
+          sam build -t template.yaml
+
+      - name: SAM deploy (dev)
+        run: |
+          set -euo pipefail
+          STAGE=dev
+          PARAM_FILE="infra/sam/params/${STAGE}.txt"
+          STACK_NAME="weddo-api-${STAGE}"
+          OVERRIDES_FILE=$(mktemp /tmp/sam-overrides-XXXXXX.yaml)
+          trap 'rm -f "$OVERRIDES_FILE"' EXIT
+
+          append_kv() { printf '%s: "%s"\n' "$1" "$2" >> "$OVERRIDES_FILE"; }
+
+          append_kv DatabaseURL "${DATABASE_URL}"
+          append_kv JWTSecret "${JWT_SECRET}"
+          append_kv MPAccessToken "${MP_ACCESS_TOKEN:-}"
+          append_kv GoogleOAuthClientSecret "${GOOGLE_OAUTH_CLIENT_SECRET:-}"
+          append_kv GoogleOAuthTokenCipherKey "${GOOGLE_OAUTH_TOKEN_CIPHER_KEY:-}"
+          append_kv PaymentProvider "${PAYMENT_PROVIDER:-}"
+          append_kv MPNotificationURL "${MP_NOTIFICATION_URL:-}"
+          append_kv IPHandle "${IP_HANDLE:-}"
+          append_kv IPRedirectURL "${IP_REDIRECT_URL:-}"
+          append_kv IPWebhookURL "${IP_WEBHOOK_URL:-}"
+          append_kv CORSAllowedOrigins "${CORS_ALLOWED_ORIGINS:-*}"
+          append_kv GoogleOAuthClientId "${GOOGLE_OAUTH_CLIENT_ID:-}"
+          append_kv GoogleOAuthRedirectURL "${GOOGLE_OAUTH_REDIRECT_URL:-}"
+
+          while IFS= read -r line; do
+            line="${line%%$'\r'}"
+            line="${line#"${line%%[![:space:]]*}"}"
+            [[ -z "$line" || "$line" == \#* ]] && continue
+            key="${line%%=*}"
+            value="${line#*=}"
+            printf '%s: "%s"\n' "$key" "$value" >> "$OVERRIDES_FILE"
+          done < "$PARAM_FILE"
+
+          echo "==> Stack: $STACK_NAME"
+
+          sam deploy \
+            --template-file ".aws-sam/build/template.yaml" \
+            --stack-name "$STACK_NAME" \
+            --s3-prefix weddo-api-dev \
+            --resolve-s3 \
+            --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset \
+            --no-confirm-changeset \
+            --parameter-overrides "file://$OVERRIDES_FILE"

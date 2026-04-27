@@ -104,3 +104,16 @@ type PurchaseGiftRequest struct {
 	Installments    int    `json:"installments"`
 	RedirectURL     string `json:"redirect_url"`
 }
+
+// PurchaseCashGiftRequest contribuição em dinheiro (valor livre, sem item em gifts).
+type PurchaseCashGiftRequest struct {
+	Amount          float64 `json:"amount" validate:"required,gt=0"`
+	PayerName       string  `json:"payer_name" validate:"required,max=100"`
+	PayerEmail      string  `json:"payer_email" validate:"required,email"`
+	Message         string  `json:"message"`
+	PaymentMethod   string  `json:"payment_method" validate:"required,oneof=pix credit_card"`
+	CardToken       string  `json:"card_token"`
+	PaymentMethodID string  `json:"payment_method_id"`
+	Installments    int     `json:"installments"`
+	RedirectURL     string  `json:"redirect_url"`
+}
