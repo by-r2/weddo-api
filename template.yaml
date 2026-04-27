@@ -102,6 +102,11 @@ Parameters:
     AllowedValues: [ 256, 512, 1024 ]
     Description: Memória da função Lambda em MB
 
+  FunctionName:
+    Type: String
+    Default: weddo-api
+    Description: Prefixo do nome físico da Lambda na AWS (nome final = {FunctionName}-{Stage})
+
 # ──────────────────────────────────── Globals ─────────────────────────────────
 
 Globals:
@@ -145,6 +150,7 @@ Resources:
       # sam build chamará `make build-ApiFunction` para compilar o binário arm64
       BuildMethod: makefile
     Properties:
+      FunctionName: !Sub "${FunctionName}-${Stage}"
       CodeUri: .
       Handler: bootstrap
       Role: !GetAtt LambdaRole.Arn
