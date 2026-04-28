@@ -177,7 +177,9 @@ weddo-api/
 │   │   ├── wedding/
 │   │   │   └── wedding.go             # Authenticate, Seed
 │   │   ├── rsvp/
-│   │   │   └── rsvp.go                # Confirm, LookupInvitation
+│   │   │   ├── rsvp.go                # Confirm, FindInvitationByCode
+│   │   │   ├── errors.go              # Erros específicos do fluxo RSVP (mapeamento HTTP)
+│   │   │   └── rsvp_test.go           # Testes do use case (fakes dos repositórios)
 │   │   ├── invitation/
 │   │   │   └── invitation.go          # CRUD + AddGuest
 │   │   ├── guest/
@@ -208,7 +210,7 @@ weddo-api/
 │           ├── handler/
 │           │   ├── auth.go            # Login admin
 │           │   ├── health.go          # Health check
-│           │   ├── rsvp.go            # Confirm, LookupInvitation (público)
+│           │   ├── rsvp.go            # Confirm, GetInvitationByCode (público)
 │           │   ├── invitation.go      # CRUD invitations + AddGuest (admin)
 │           │   ├── guest.go           # CRUD guests (admin)
 │           │   ├── gift.go            # CRUD gifts (admin) + listagem pública

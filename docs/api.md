@@ -35,9 +35,12 @@ POST /api/v1/w/{weddingId}/rsvp
 
 ```json
 {
+  "code": "SILVA-001",
   "name": "João Silva"
 }
 ```
+
+O `code` é o mesmo campo do convite em `invitations` (único por casamento), usado também no `GET` abaixo e no painel.
 
 **Response 200 — confirmação registrada:**
 
@@ -56,13 +59,9 @@ POST /api/v1/w/{weddingId}/rsvp
 }
 ```
 
-**Response 404 — nome não encontrado:**
+**Response 404 — convite ou convidado não encontrado:**
 
-```json
-{
-  "error": "Convidado não encontrado. Verifique se o nome está exatamente como no convite."
-}
-```
+Mensagens possíveis: `Convite não encontrado.` ou `Convidado não encontrado neste convite. Verifique o nome.`
 
 **Response 409 — já confirmado:**
 
@@ -74,14 +73,17 @@ POST /api/v1/w/{weddingId}/rsvp
     "status": "confirmed",
     "confirmed_at": "2026-03-01T14:00:00Z"
   },
+  "invitation": {
+    "label": "Família Silva"
+  },
   "message": "Presença já estava confirmada."
 }
 ```
 
-### Consultar Convite
+### Consultar convite (lista do grupo)
 
 ```
-GET /api/v1/w/{weddingId}/rsvp/invitation?name=João+Silva
+GET /api/v1/w/{weddingId}/rsvp/invitation?code=SILVA-001
 ```
 
 **Response 200:**
@@ -93,9 +95,9 @@ GET /api/v1/w/{weddingId}/rsvp/invitation?name=João+Silva
     "max_guests": 4
   },
   "guests": [
-    { "name": "João Silva", "status": "confirmed" },
-    { "name": "Maria Silva", "status": "pending" },
-    { "name": "Pedro Silva", "status": "pending" }
+    { "id": "uuid", "name": "João Silva", "status": "confirmed" },
+    { "id": "uuid", "name": "Maria Silva", "status": "pending" },
+    { "id": "uuid", "name": "Pedro Silva", "status": "pending" }
   ]
 }
 ```

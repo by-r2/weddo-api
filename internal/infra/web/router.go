@@ -74,8 +74,7 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 			r.Use(httprate.LimitByIP(60, 1*time.Minute))
 
 			r.Post("/rsvp", rsvpHandler.Confirm)
-			r.Get("/rsvp/invitation", rsvpHandler.LookupInvitation)
-			r.Get("/rsvp/invitation/{invitationId}", rsvpHandler.GetInvitation)
+			r.Get("/rsvp/invitation", rsvpHandler.GetInvitationByCode)
 
 			r.Get("/gifts", giftHandler.ListPublic)
 			r.Get("/gifts/{id}", giftHandler.GetPublic)

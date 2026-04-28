@@ -40,12 +40,12 @@ func (r *guestRepository) FindByID(ctx context.Context, weddingID, id string) (*
 	return r.scanGuest(r.db.QueryRowContext(ctx, query, weddingID, id))
 }
 
-func (r *guestRepository) FindByName(ctx context.Context, weddingID, name string) (*entity.Guest, error) {
+func (r *guestRepository) FindByNameInInvitation(ctx context.Context, weddingID, invitationID, name string) (*entity.Guest, error) {
 	query := `
 		SELECT id, invitation_id, wedding_id, name, phone, email, status, confirmed_at, created_at, updated_at
-		FROM guests WHERE wedding_id = $1 AND LOWER(name) = LOWER($2)`
+		FROM guests WHERE wedding_id = $1 AND invitation_id = $2 AND LOWER(name) = LOWER($3)`
 
-	return r.scanGuest(r.db.QueryRowContext(ctx, query, weddingID, name))
+	return r.scanGuest(r.db.QueryRowContext(ctx, query, weddingID, invitationID, name))
 }
 
 func (r *guestRepository) ListByInvitation(ctx context.Context, weddingID, invitationID string) ([]entity.Guest, error) {

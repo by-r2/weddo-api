@@ -1,7 +1,8 @@
 {
   "info": {
     "name": "wedding-api",
-    "description": "API multi-tenant para sites de casamento.\n\n## Setup\n\n1. Importe esta collection\n2. Importe o environment `local.postman_environment.json`\n3. Rode o servidor: `make run`\n4. Execute **admin > login** para popular `token` e `weddingId` automaticamente\n5. Pronto — todas as requests usarão as variáveis automaticamente\n\n## Variáveis\n\n| Variável | Preenchida por | Uso |\n|----------|---------------|-----|\n| `baseUrl` | Environment | Base URL do servidor |\n| `token` | login (auto) | Bearer token JWT |\n| `weddingId` | login (auto) | UUID do tenant para endpoints públicos |\n| `invitationId` | create-invitation (auto) | ID do último convite criado |\n| `guestId` | list-guests (auto) | ID do primeiro convidado na lista |\n| `giftId` | create-gift (auto) | ID do último presente criado |\n| `paymentId` | purchase-pix (auto) | ID do último pagamento criado |",
+    "description": "API multi-tenant para sites de casamento.\n\n## Setup\n\n1. Importe esta collection\n2. Importe o environment `local.postman_environment.json`\n3. Rode o servidor: `make run`\n4. Execute **admin > login** para popular `token` e `weddingId` automaticamente\n5. Pronto — todas as requests usarão as variáveis automaticamente\n\n## Variáveis\n\n| Variável | Preenchida por | Uso |\n|----------|---------------|-----|\n| `baseUrl` | Environment | Base URL do servidor |\n| `token` | login (auto) | Bearer token JWT |\n| `weddingId` | login (auto) | UUID do tenant para endpoints públicos |\n| `invitationId` | create-invitation (auto) | ID do último convite criado |
+| `invitationCode` | create-invitation (auto) | Código do último convite (RSVP público) |\n| `guestId` | list-guests (auto) | ID do primeiro convidado na lista |\n| `giftId` | create-gift (auto) | ID do último presente criado |\n| `paymentId` | purchase-pix (auto) | ID do último pagamento criado |",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -162,6 +163,9 @@
                       "if (pm.response.code === 201) {",
                       "  const body = pm.response.json();",
                       "  pm.environment.set('invitationId', body.id);",
+                      "  if (body.code) {",
+                      "    pm.environment.set('invitationCode', body.code);",
+                      "  }",
                       "  if (body.guests && body.guests.length > 0) {",
                       "    pm.environment.set('guestId', body.guests[0].id);",
                       "  }",
@@ -758,14 +762,14 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"João Silva\"\n}"
+                  "raw": "{\n  \"code\": \"{{invitationCode}}\",\n  \"name\": \"João Silva\"\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/w/{{weddingId}}/rsvp",
                   "host": ["{{baseUrl}}"],
                   "path": ["w", "{{weddingId}}", "rsvp"]
                 },
-                "description": "Confirma presença buscando por nome exato (case-insensitive).\n\n- **200**: Confirmado com sucesso\n- **404**: Nome não encontrado\n- **409**: Já confirmado anteriormente"
+                "description": "Confirma presença de um convidado no convite identificado por `code` (mesmo do cadastro do convite). O nome deve ser o cadastrado naquele convite.\n\n- **200**: Confirmado com sucesso\n- **404**: Convite ou convidado não encontrado\n- **409**: Já confirmado anteriormente"
               },
               "event": [
                 {
@@ -785,19 +789,19 @@
               ]
             },
             {
-              "name": "lookup-invitation",
+              "name": "get-invitation-by-code",
               "request": {
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/w/{{weddingId}}/rsvp/invitation?name=João Silva",
+                  "raw": "{{baseUrl}}/w/{{weddingId}}/rsvp/invitation?code={{invitationCode}}",
                   "host": ["{{baseUrl}}"],
                   "path": ["w", "{{weddingId}}", "rsvp", "invitation"],
                   "query": [
-                    { "key": "name", "value": "João Silva", "description": "Nome exato do convidado" }
+                    { "key": "code", "value": "{{invitationCode}}", "description": "Código único do convite (mesmo do painel)" }
                   ]
                 },
-                "description": "Busca o convite pelo nome do convidado e retorna todos os convidados do mesmo convite com seus status."
+                "description": "Retorna o convite e todos os convidados do grupo pelo `code` (ex.: campo no convite físico ou link do site)."
               },
               "event": [
                 {

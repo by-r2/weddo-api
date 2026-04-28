@@ -29,7 +29,7 @@ Feature principal. Sem isso, os convidados não conseguem confirmar presença.
 - [x] Use case RSVP (buscar por nome no tenant, confirmar, idempotência)
 - [x] Use case CRUD de convites (admin, scoped por wedding_id)
 - [x] Use case CRUD de convidados (admin, scoped)
-- [x] Handlers públicos: `POST /w/{weddingId}/rsvp`, `GET /w/{weddingId}/rsvp/invitation`
+- [x] Handlers públicos: `POST /w/{weddingId}/rsvp`, `GET /w/{weddingId}/rsvp/invitation?code=`
 - [x] Handlers admin: CRUD invitations, CRUD guests, dashboard
 - [ ] Testes unitários dos use cases
 - [ ] Integração com o frontend (ajustar form action + JS de submit)

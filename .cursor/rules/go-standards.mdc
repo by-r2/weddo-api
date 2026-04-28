@@ -21,18 +21,18 @@ alwaysApply: false
 
 ```go
 // ❌
-func (uc *RSVPUseCase) Confirm(name string) (*entity.Guest, error) {
-    guest, err := uc.repo.FindByName(name)
+func (uc *RSVPUseCase) Load(ctx context.Context, id string) (*entity.Guest, error) {
+    guest, err := uc.repo.FindByID(ctx, id)
     if err != nil {
         return nil, err // sem contexto
     }
 }
 
 // ✅
-func (uc *RSVPUseCase) Confirm(name string) (*entity.Guest, error) {
-    guest, err := uc.repo.FindByName(name)
+func (uc *RSVPUseCase) Load(ctx context.Context, id string) (*entity.Guest, error) {
+    guest, err := uc.repo.FindByID(ctx, id)
     if err != nil {
-        return nil, fmt.Errorf("rsvp.Confirm: %w", err)
+        return nil, fmt.Errorf("rsvp.Load: %w", err)
     }
 }
 ```

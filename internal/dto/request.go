@@ -34,6 +34,7 @@ type InviteUserRequest struct {
 // RSVP
 
 type RSVPRequest struct {
+	Code string `json:"code" validate:"required,max=50"`
 	Name string `json:"name" validate:"required,max=100"`
 }
 

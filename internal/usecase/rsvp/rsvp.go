@@ -2,6 +2,7 @@ package rsvp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -18,11 +19,21 @@ func NewUseCase(gr repository.GuestRepository, ir repository.InvitationRepositor
 	return &UseCase{guestRepo: gr, invitationRepo: ir}
 }
 
-// Confirm busca o convidado por nome e registra a confirmação.
-// Retorna o guest atualizado e o invitation ao qual pertence.
-func (uc *UseCase) Confirm(ctx context.Context, weddingID, name string) (*entity.Guest, *entity.Invitation, bool, error) {
-	guest, err := uc.guestRepo.FindByName(ctx, weddingID, name)
+// Confirm registra a confirmação de presença de um convidado no convite identificado por code.
+func (uc *UseCase) Confirm(ctx context.Context, weddingID, invitationCode, guestName string) (*entity.Guest, *entity.Invitation, bool, error) {
+	inv, err := uc.invitationRepo.FindByCode(ctx, weddingID, invitationCode)
 	if err != nil {
+		if errors.Is(err, entity.ErrNotFound) {
+			return nil, nil, false, ErrInvitationNotFound
+		}
+		return nil, nil, false, err
+	}
+
+	guest, err := uc.guestRepo.FindByNameInInvitation(ctx, weddingID, inv.ID, guestName)
+	if err != nil {
+		if errors.Is(err, entity.ErrNotFound) {
+			return nil, nil, false, ErrGuestNotFoundOnInvitation
+		}
 		return nil, nil, false, err
 	}
 
@@ -39,44 +50,22 @@ func (uc *UseCase) Confirm(ctx context.Context, weddingID, name string) (*entity
 		}
 	}
 
-	inv, err := uc.invitationRepo.FindByID(ctx, weddingID, guest.InvitationID)
-	if err != nil {
-		return nil, nil, false, fmt.Errorf("rsvp.Confirm: find invitation: %w", err)
-	}
-
 	return guest, inv, alreadyConfirmed, nil
 }
 
-// FindInvitationByID busca o convite pelo ID e lista todos os guests vinculados.
-func (uc *UseCase) FindInvitationByID(ctx context.Context, weddingID, invitationID string) (*entity.Invitation, []entity.Guest, error) {
-	inv, err := uc.invitationRepo.FindByID(ctx, weddingID, invitationID)
+// FindInvitationByCode busca o convite pelo code (único por wedding) e lista todos os guests.
+func (uc *UseCase) FindInvitationByCode(ctx context.Context, weddingID, code string) (*entity.Invitation, []entity.Guest, error) {
+	inv, err := uc.invitationRepo.FindByCode(ctx, weddingID, code)
 	if err != nil {
+		if errors.Is(err, entity.ErrNotFound) {
+			return nil, nil, ErrInvitationNotFound
+		}
 		return nil, nil, err
 	}
 
 	guests, err := uc.guestRepo.ListByInvitation(ctx, weddingID, inv.ID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("rsvp.FindInvitationByID: list guests: %w", err)
-	}
-
-	return inv, guests, nil
-}
-
-// LookupInvitation busca o convite de um convidado pelo nome e lista todos os guests do convite.
-func (uc *UseCase) LookupInvitation(ctx context.Context, weddingID, name string) (*entity.Invitation, []entity.Guest, error) {
-	guest, err := uc.guestRepo.FindByName(ctx, weddingID, name)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	inv, err := uc.invitationRepo.FindByID(ctx, weddingID, guest.InvitationID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("rsvp.LookupInvitation: find invitation: %w", err)
-	}
-
-	guests, err := uc.guestRepo.ListByInvitation(ctx, weddingID, inv.ID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("rsvp.LookupInvitation: list guests: %w", err)
+		return nil, nil, fmt.Errorf("rsvp.FindInvitationByCode: list guests: %w", err)
 	}
 
 	return inv, guests, nil
