@@ -16,4 +16,6 @@ type GiftRepository interface {
 	Update(ctx context.Context, gift *entity.Gift) error
 	Delete(ctx context.Context, weddingID, id string) error
 	CountByWedding(ctx context.Context, weddingID string) (total, available, purchased int, err error)
+	// ListCategories retorna categorias distintas dos gifts de catálogo (ordenadas), sem repetir valores após trim; vazio se não houver.
+	ListCategories(ctx context.Context, weddingID string) ([]string, error)
 }

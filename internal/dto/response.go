@@ -118,6 +118,10 @@ type GiftResponse struct {
 	UpdatedAt   string  `json:"updated_at"`
 }
 
+type GiftCategoriesResponse struct {
+	Categories []string `json:"categories"`
+}
+
 // Payments
 
 type CheckoutResponse struct {

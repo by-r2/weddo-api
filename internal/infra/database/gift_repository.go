@@ -186,6 +186,37 @@ func (r *giftRepository) Delete(ctx context.Context, weddingID, id string) error
 	return nil
 }
 
+func (r *giftRepository) ListCategories(ctx context.Context, weddingID string) ([]string, error) {
+	const q = `
+		SELECT DISTINCT TRIM(BOTH FROM category) AS cat
+		FROM gifts
+		WHERE wedding_id = $1 AND kind = $2
+		  AND LENGTH(TRIM(BOTH FROM category)) > 0
+		ORDER BY LOWER(TRIM(BOTH FROM category))`
+
+	rows, err := r.db.QueryContext(ctx, q, weddingID, entity.GiftKindCatalog)
+	if err != nil {
+		return nil, fmt.Errorf("giftRepository.ListCategories: %w", err)
+	}
+	defer rows.Close()
+
+	var out []string
+	for rows.Next() {
+		var cat string
+		if err := rows.Scan(&cat); err != nil {
+			return nil, fmt.Errorf("giftRepository.ListCategories: scan: %w", err)
+		}
+		out = append(out, cat)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("giftRepository.ListCategories: rows: %w", err)
+	}
+	if out == nil {
+		out = []string{}
+	}
+	return out, nil
+}
+
 func (r *giftRepository) CountByWedding(ctx context.Context, weddingID string) (total, available, purchased int, err error) {
 	query := `
 		SELECT

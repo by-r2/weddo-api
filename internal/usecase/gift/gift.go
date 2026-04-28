@@ -59,6 +59,15 @@ func (uc *UseCase) List(ctx context.Context, weddingID string, page, perPage int
 	return uc.giftRepo.List(ctx, weddingID, page, perPage, category, status, search, catalogOnly)
 }
 
+// ListCategories retorna labels distintas já usadas em presentes de catálogo (para filtros/select no front).
+func (uc *UseCase) ListCategories(ctx context.Context, weddingID string) ([]string, error) {
+	out, err := uc.giftRepo.ListCategories(ctx, weddingID)
+	if err != nil {
+		return nil, fmt.Errorf("gift.ListCategories: %w", err)
+	}
+	return out, nil
+}
+
 type UpdateInput struct {
 	WeddingID   string
 	ID          string

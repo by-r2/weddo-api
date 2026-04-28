@@ -51,8 +51,8 @@ Substituir o Casar.com por solução própria com PIX e cartão.
 - [x] Use case: webhook de confirmação (InfinitePay ou Mercado Pago → API)
 - [x] Use case: CRUD de presentes (admin, scoped)
 - [x] Use case: dashboard com stats de gifts + receita (admin, scoped)
-- [x] Handlers públicos: `/w/{weddingId}/gifts`, `POST /w/{weddingId}/checkout`, `/payments/{id}/status`
-- [x] Handlers admin: CRUD gifts, listagem/detalhe payments
+- [x] Handlers públicos: `/w/{weddingId}/gifts`, `/w/{weddingId}/gift-categories`, `POST /w/{weddingId}/checkout`, `/payments/{id}/status`
+- [x] Handlers admin: CRUD gifts, `/admin/gift-categories`, listagem/detalhe payments
 - [x] Webhook: `POST /payments/webhook`
 - [ ] Testes unitários dos use cases
 - [ ] Integração com o frontend

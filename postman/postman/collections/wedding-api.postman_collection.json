@@ -613,6 +613,35 @@
           "name": "gifts",
           "item": [
             {
+              "name": "gift-categories",
+              "event": [],
+              "id": "c4a88210-92c1-4f2a-bd11-b8e3c1a00001",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/gift-categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "gift-categories"
+                  ]
+                },
+                "description": "Categorias distintas já usadas nos presentes do catálogo (tenant via JWT)."
+              },
+              "response": []
+            },
+            {
               "name": "create-gift",
               "event": [
                 {
@@ -1050,6 +1079,31 @@
         {
           "name": "gifts",
           "item": [
+            {
+              "name": "gift-categories",
+              "event": [],
+              "id": "c4a88210-92c1-4f2a-bd11-b8e3c1a00002",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/w/{{weddingId}}/gift-categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "w",
+                    "{{weddingId}}",
+                    "gift-categories"
+                  ]
+                },
+                "description": "Categorias distintas já usadas nos presentes do catálogo (select no admin ou filtro público)."
+              },
+              "response": []
+            },
             {
               "name": "list-gifts",
               "event": [

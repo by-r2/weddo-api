@@ -44,6 +44,17 @@ func (h *GiftHandler) ListPublic(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// ListGiftCategories retorna categorias distintas já usadas em presentes de catálogo (público — tenant na URL).
+func (h *GiftHandler) ListGiftCategories(w http.ResponseWriter, r *http.Request) {
+	weddingID := middleware.GetWeddingID(r.Context())
+	cats, err := h.giftUC.ListCategories(r.Context(), weddingID)
+	if err != nil {
+		respondInternalError(w, r, "gift.handler.ListGiftCategories", err, "Erro ao listar categorias.")
+		return
+	}
+	respondJSON(w, http.StatusOK, dto.GiftCategoriesResponse{Categories: cats})
+}
+
 func (h *GiftHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 	weddingID := middleware.GetWeddingID(r.Context())
 	id := chi.URLParam(r, "id")

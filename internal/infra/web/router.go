@@ -76,6 +76,7 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 			r.Post("/rsvp", rsvpHandler.Confirm)
 			r.Get("/rsvp/invitation", rsvpHandler.GetInvitationByCode)
 
+			r.Get("/gift-categories", giftHandler.ListGiftCategories)
 			r.Get("/gifts", giftHandler.ListPublic)
 			r.Get("/gifts/{id}", giftHandler.GetPublic)
 			r.Post("/checkout", paymentHandler.Checkout)
@@ -124,6 +125,7 @@ func NewRouter(deps RouterDeps) *chi.Mux {
 				r.Delete("/{id}", guestHandler.Delete)
 			})
 
+			r.Get("/gift-categories", giftHandler.ListGiftCategories)
 			r.Route("/gifts", func(r chi.Router) {
 				r.Get("/", giftHandler.List)
 				r.Post("/", giftHandler.Create)

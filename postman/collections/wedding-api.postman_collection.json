@@ -444,6 +444,21 @@
           "name": "gifts",
           "item": [
             {
+              "name": "gift-categories",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{jwt}}", "description": "JWT do admin" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/gift-categories",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "gift-categories"]
+                },
+                "description": "Categorias distintas já usadas nos presentes do catálogo (tenant via JWT)."
+              }
+            },
+            {
               "name": "create-gift",
               "request": {
                 "method": "POST",
@@ -824,6 +839,19 @@
         {
           "name": "gifts",
           "item": [
+            {
+              "name": "gift-categories",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/w/{{weddingId}}/gift-categories",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["w", "{{weddingId}}", "gift-categories"]
+                },
+                "description": "Categorias distintas já usadas nos presentes do catálogo (select no admin ou filtro público)."
+              }
+            },
             {
               "name": "list-gifts",
               "request": {
