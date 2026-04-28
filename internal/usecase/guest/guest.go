@@ -47,7 +47,11 @@ func (uc *UseCase) Update(ctx context.Context, input UpdateInput) (*entity.Guest
 	g.UpdatedAt = time.Now()
 
 	if input.Status != "" && entity.GuestStatus(input.Status) != g.Status {
-		g.Status = entity.GuestStatus(input.Status)
+		nextStatus := entity.GuestStatus(input.Status)
+		if !canTransitionGuestStatus(g.Status, nextStatus) {
+			return nil, ErrGuestStatusTransitionNotAllowed
+		}
+		g.Status = nextStatus
 		if g.Status == entity.GuestStatusConfirmed && g.ConfirmedAt == nil {
 			now := time.Now()
 			g.ConfirmedAt = &now
@@ -61,6 +65,23 @@ func (uc *UseCase) Update(ctx context.Context, input UpdateInput) (*entity.Guest
 		return nil, fmt.Errorf("guest.Update: %w", err)
 	}
 	return g, nil
+}
+
+func canTransitionGuestStatus(current, next entity.GuestStatus) bool {
+	if current == next {
+		return true
+	}
+
+	switch current {
+	case entity.GuestStatusPending:
+		return next == entity.GuestStatusConfirmed || next == entity.GuestStatusDeclined
+	case entity.GuestStatusConfirmed:
+		return next == entity.GuestStatusDeclined
+	case entity.GuestStatusDeclined:
+		return false
+	default:
+		return false
+	}
 }
 
 func (uc *UseCase) Delete(ctx context.Context, weddingID, id string) error {

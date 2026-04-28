@@ -8,7 +8,7 @@ description: >-
 
   - **404**: Convite ou convidado não encontrado
 
-  - **409**: Já confirmado anteriormente
+  - **409**: Já confirmado anteriormente, ou convidado recusado (status terminal)
 url: "{{baseUrl}}/w/{{weddingId}}/rsvp"
 method: POST
 headers:

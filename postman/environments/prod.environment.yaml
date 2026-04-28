@@ -12,4 +12,10 @@ values:
   - key: guestId
     enabled: true
     value: ''
+  - key: invitationId
+    enabled: true
+    value: ''
+  - key: invitationCode
+    enabled: true
+    value: ''
 color: 0

@@ -39,6 +39,9 @@ func (h *RSVPHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, rsvp.ErrGuestNotFoundOnInvitation):
 			respondError(w, http.StatusNotFound, "Convidado não encontrado neste convite. Verifique o nome.")
 			return
+		case errors.Is(err, rsvp.ErrGuestStatusTransitionNotAllowed):
+			respondError(w, http.StatusConflict, "Este convidado recusou o convite e não pode confirmar novamente.")
+			return
 		}
 		respondInternalError(w, r, "rsvp.handler.Confirm", err, "Erro interno do servidor.")
 		return

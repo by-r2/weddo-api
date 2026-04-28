@@ -80,6 +80,14 @@ Mensagens possíveis: `Convite não encontrado.` ou `Convidado não encontrado n
 }
 ```
 
+**Response 409 — convidado recusado anteriormente:**
+
+```json
+{
+  "error": "Este convidado recusou o convite e não pode confirmar novamente."
+}
+```
+
 ### Consultar convite (lista do grupo)
 
 ```
@@ -405,6 +413,15 @@ POST   /api/v1/admin/invitations/{id}/guests  # adicionar a convite existente
 ```
 
 > `status` também é opcional aqui e segue o mesmo comportamento (default `pending`).
+
+**Regras de transição de status (`PUT /api/v1/admin/guests/{id}`):**
+
+- `pending -> confirmed` ✅
+- `pending -> declined` ✅
+- `confirmed -> declined` ✅
+- `confirmed -> pending` ❌
+- `declined -> pending` ❌
+- `declined -> confirmed` ❌
 
 ### Presentes (Gifts)
 

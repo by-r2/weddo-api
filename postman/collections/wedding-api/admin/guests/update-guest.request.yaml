@@ -1,6 +1,12 @@
 $kind: http-request
 description: "Atualiza dados e/ou status do convidado. Status aceitos:
-  `pending`, `confirmed`, `declined`."
+  `pending`, `confirmed`, `declined`.
+
+  Regras de transição:
+  - pending -> confirmed/declined
+  - confirmed -> declined
+  - confirmed -> pending (bloqueado)
+  - declined -> qualquer outro (bloqueado)"
 url: "{{baseUrl}}/admin/guests/{{guestId}}"
 method: PUT
 headers:
@@ -16,6 +22,9 @@ body:
     }
 scripts:
   - type: afterResponse
-    code: pm.test('Status 200', () => pm.response.to.have.status(200));
+    code: |-
+      pm.test('Status 200 ou 409', () => {
+        pm.expect(pm.response.code).to.be.oneOf([200, 409]);
+      });
     language: text/javascript
 order: 3000

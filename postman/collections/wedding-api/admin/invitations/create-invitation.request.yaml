@@ -5,12 +5,12 @@ method: POST
 headers:
   Content-Type: application/json
 body:
-  type: text
+  type: json
   content: |-
     {
       "code": "SILVA-001",
       "label": "Família Silva",
-      "max_guests": 3,
+      "max_guests": 4,
       "notes": "Mesa próxima à família",
       "guests": [
         {
@@ -43,4 +43,5 @@ scripts:
         }
       }
     language: text/javascript
+examples: .resources/create-invitation.resources/examples
 order: 1000
