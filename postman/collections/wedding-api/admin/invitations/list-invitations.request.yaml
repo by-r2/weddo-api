@@ -1,0 +1,21 @@
+$kind: http-request
+description: Lista convites com paginação e busca opcional.
+url: "{{baseUrl}}/admin/invitations?page=1&per_page=20&search="
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+  - key: per_page
+    value: "20"
+  - key: search
+    value: ""
+    description: Busca por label ou code
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      pm.test('Tem paginação', () => {
+        pm.expect(pm.response.json().meta).to.have.property('total');
+      });
+    language: text/javascript
+order: 2000

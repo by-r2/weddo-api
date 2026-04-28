@@ -1,0 +1,33 @@
+$kind: http-request
+description: |-
+  Autentica o admin e retorna JWT + dados do wedding.
+
+  O token e weddingId são salvos automaticamente nas variáveis do environment.
+url: "{{baseUrl}}/admin/auth"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "email": "{{adminEmail}}",
+      "password": "{{adminPassword}}"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: >-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+
+
+      if (pm.response.code === 200) {
+        const body = pm.response.json();
+        pm.environment.set('token', body.token);
+        pm.environment.set('weddingId', body.wedding.id);
+        pm.test('Token salvo', () => pm.expect(body.token).to.be.a('string'));
+        pm.test('Wedding ID salvo', () => pm.expect(body.wedding.id).to.be.a('string'));
+      }
+    language: text/javascript
+order: 1000

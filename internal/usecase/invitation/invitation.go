@@ -5,18 +5,26 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/by-r2/weddo-api/internal/domain/entity"
 	"github.com/by-r2/weddo-api/internal/domain/repository"
+	"github.com/google/uuid"
 )
 
 type UseCase struct {
-	invRepo  repository.InvitationRepository
+	invRepo   repository.InvitationRepository
 	guestRepo repository.GuestRepository
+	txManager repository.TransactionManager
 }
 
-func NewUseCase(ir repository.InvitationRepository, gr repository.GuestRepository) *UseCase {
-	return &UseCase{invRepo: ir, guestRepo: gr}
+func NewUseCase(ir repository.InvitationRepository, gr repository.GuestRepository, txManager repository.TransactionManager) *UseCase {
+	return &UseCase{invRepo: ir, guestRepo: gr, txManager: txManager}
+}
+
+type CreateGuestInput struct {
+	Name   string
+	Phone  string
+	Email  string
+	Status string
 }
 
 type CreateInput struct {
@@ -25,7 +33,7 @@ type CreateInput struct {
 	Label     string
 	MaxGuests int
 	Notes     string
-	Guests    []string // nomes dos convidados
+	Guests    []CreateGuestInput
 }
 
 func (uc *UseCase) Create(ctx context.Context, input CreateInput) (*entity.Invitation, error) {
@@ -41,24 +49,37 @@ func (uc *UseCase) Create(ctx context.Context, input CreateInput) (*entity.Invit
 		UpdatedAt: now,
 	}
 
-	if err := uc.invRepo.Create(ctx, inv); err != nil {
-		return nil, fmt.Errorf("invitation.Create: %w", err)
-	}
+	err := uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		if err := uc.invRepo.Create(txCtx, inv); err != nil {
+			return fmt.Errorf("invitation.Create: %w", err)
+		}
 
-	for _, name := range input.Guests {
-		guest := &entity.Guest{
-			ID:           uuid.New().String(),
-			InvitationID: inv.ID,
-			WeddingID:    input.WeddingID,
-			Name:         name,
-			Status:       entity.GuestStatusPending,
-			CreatedAt:    now,
-			UpdatedAt:    now,
+		for _, gi := range input.Guests {
+			status := sanitizeGuestStatus(gi.Status)
+			guest := &entity.Guest{
+				ID:           uuid.New().String(),
+				InvitationID: inv.ID,
+				WeddingID:    input.WeddingID,
+				Name:         gi.Name,
+				Phone:        gi.Phone,
+				Email:        gi.Email,
+				Status:       status,
+				CreatedAt:    now,
+				UpdatedAt:    now,
+			}
+			if status == entity.GuestStatusConfirmed {
+				confirmedAt := now
+				guest.ConfirmedAt = &confirmedAt
+			}
+			if err := uc.guestRepo.Create(txCtx, guest); err != nil {
+				return fmt.Errorf("invitation.Create: create guest %q: %w", gi.Name, err)
+			}
+			inv.Guests = append(inv.Guests, *guest)
 		}
-		if err := uc.guestRepo.Create(ctx, guest); err != nil {
-			return nil, fmt.Errorf("invitation.Create: create guest %q: %w", name, err)
-		}
-		inv.Guests = append(inv.Guests, *guest)
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return inv, nil
@@ -115,12 +136,9 @@ func (uc *UseCase) Delete(ctx context.Context, weddingID, id string) error {
 }
 
 // AddGuest adiciona um convidado a um convite existente.
-func (uc *UseCase) AddGuest(ctx context.Context, weddingID, invitationID, name, phone, email string) (*entity.Guest, error) {
-	if _, err := uc.invRepo.FindByID(ctx, weddingID, invitationID); err != nil {
-		return nil, err
-	}
-
+func (uc *UseCase) AddGuest(ctx context.Context, weddingID, invitationID, name, phone, email, statusRaw string) (*entity.Guest, error) {
 	now := time.Now()
+	status := sanitizeGuestStatus(statusRaw)
 	guest := &entity.Guest{
 		ID:           uuid.New().String(),
 		InvitationID: invitationID,
@@ -128,13 +146,43 @@ func (uc *UseCase) AddGuest(ctx context.Context, weddingID, invitationID, name, 
 		Name:         name,
 		Phone:        phone,
 		Email:        email,
-		Status:       entity.GuestStatusPending,
+		Status:       status,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
+	if status == entity.GuestStatusConfirmed {
+		confirmedAt := now
+		guest.ConfirmedAt = &confirmedAt
+	}
 
-	if err := uc.guestRepo.Create(ctx, guest); err != nil {
-		return nil, fmt.Errorf("invitation.AddGuest: %w", err)
+	err := uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		inv, err := uc.invRepo.FindByID(txCtx, weddingID, invitationID)
+		if err != nil {
+			return err
+		}
+
+		if err := uc.guestRepo.Create(txCtx, guest); err != nil {
+			return fmt.Errorf("invitation.AddGuest: %w", err)
+		}
+
+		inv.UpdatedAt = now
+		if err := uc.invRepo.Update(txCtx, inv); err != nil {
+			return fmt.Errorf("invitation.AddGuest: touch invitation: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return guest, nil
+}
+
+func sanitizeGuestStatus(raw string) entity.GuestStatus {
+	status := entity.GuestStatus(raw)
+	switch status {
+	case entity.GuestStatusConfirmed, entity.GuestStatusDeclined:
+		return status
+	default:
+		return entity.GuestStatusPending
+	}
 }

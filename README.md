@@ -98,7 +98,7 @@ make docker-stop        # para e remove o container
 A pasta `postman/` é um workspace local do Postman. Para usar:
 
 - **VS Code Extension**: abra a pasta `postman/` pela extensão — collection e environment já estão registrados
-- **App/Web**: importe `postman/collections/wedding-api.postman_collection.json` e `postman/environments/local.postman_environment.json`
+- **App/Web**: importe a pasta `postman/collections/wedding-api/` e o arquivo `postman/environments/local.environment.yaml`
 
 Ajuste `adminEmail` e `adminPassword` no environment, execute **admin > login** e todas as variáveis (`token`, `weddingId`, etc.) serão populadas automaticamente.
 

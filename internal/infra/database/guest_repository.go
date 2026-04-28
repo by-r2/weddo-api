@@ -18,11 +18,12 @@ func NewGuestRepository(db *sql.DB) repository.GuestRepository {
 }
 
 func (r *guestRepository) Create(ctx context.Context, g *entity.Guest) error {
+	exec := executorFromContext(ctx, r.db)
 	query := `
 		INSERT INTO guests (id, invitation_id, wedding_id, name, phone, email, status, confirmed_at, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 
-	_, err := r.db.ExecContext(ctx, query,
+	_, err := exec.ExecContext(ctx, query,
 		g.ID, g.InvitationID, g.WeddingID, g.Name, g.Phone, g.Email,
 		g.Status, g.ConfirmedAt, g.CreatedAt, g.UpdatedAt,
 	)
@@ -33,27 +34,30 @@ func (r *guestRepository) Create(ctx context.Context, g *entity.Guest) error {
 }
 
 func (r *guestRepository) FindByID(ctx context.Context, weddingID, id string) (*entity.Guest, error) {
+	exec := executorFromContext(ctx, r.db)
 	query := `
 		SELECT id, invitation_id, wedding_id, name, phone, email, status, confirmed_at, created_at, updated_at
 		FROM guests WHERE wedding_id = $1 AND id = $2`
 
-	return r.scanGuest(r.db.QueryRowContext(ctx, query, weddingID, id))
+	return r.scanGuest(exec.QueryRowContext(ctx, query, weddingID, id))
 }
 
 func (r *guestRepository) FindByNameInInvitation(ctx context.Context, weddingID, invitationID, name string) (*entity.Guest, error) {
+	exec := executorFromContext(ctx, r.db)
 	query := `
 		SELECT id, invitation_id, wedding_id, name, phone, email, status, confirmed_at, created_at, updated_at
 		FROM guests WHERE wedding_id = $1 AND invitation_id = $2 AND LOWER(name) = LOWER($3)`
 
-	return r.scanGuest(r.db.QueryRowContext(ctx, query, weddingID, invitationID, name))
+	return r.scanGuest(exec.QueryRowContext(ctx, query, weddingID, invitationID, name))
 }
 
 func (r *guestRepository) ListByInvitation(ctx context.Context, weddingID, invitationID string) ([]entity.Guest, error) {
+	exec := executorFromContext(ctx, r.db)
 	query := `
 		SELECT id, invitation_id, wedding_id, name, phone, email, status, confirmed_at, created_at, updated_at
 		FROM guests WHERE wedding_id = $1 AND invitation_id = $2 ORDER BY name`
 
-	rows, err := r.db.QueryContext(ctx, query, weddingID, invitationID)
+	rows, err := exec.QueryContext(ctx, query, weddingID, invitationID)
 	if err != nil {
 		return nil, fmt.Errorf("guestRepository.ListByInvitation: %w", err)
 	}
@@ -63,6 +67,7 @@ func (r *guestRepository) ListByInvitation(ctx context.Context, weddingID, invit
 }
 
 func (r *guestRepository) List(ctx context.Context, weddingID string, page, perPage int, status, search string) ([]entity.Guest, int, error) {
+	exec := executorFromContext(ctx, r.db)
 	countQuery := `SELECT COUNT(*) FROM guests WHERE wedding_id = $1`
 	listQuery := `
 		SELECT id, invitation_id, wedding_id, name, phone, email, status, confirmed_at, created_at, updated_at
@@ -87,7 +92,7 @@ func (r *guestRepository) List(ctx context.Context, weddingID string, page, perP
 	}
 
 	var total int
-	if err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
+	if err := exec.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("guestRepository.List: count: %w", err)
 	}
 
@@ -95,7 +100,7 @@ func (r *guestRepository) List(ctx context.Context, weddingID string, page, perP
 	offset := (page - 1) * perPage
 	listArgs := append(args, perPage, offset)
 
-	rows, err := r.db.QueryContext(ctx, listQuery, listArgs...)
+	rows, err := exec.QueryContext(ctx, listQuery, listArgs...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("guestRepository.List: query: %w", err)
 	}
@@ -109,11 +114,12 @@ func (r *guestRepository) List(ctx context.Context, weddingID string, page, perP
 }
 
 func (r *guestRepository) Update(ctx context.Context, g *entity.Guest) error {
+	exec := executorFromContext(ctx, r.db)
 	query := `
 		UPDATE guests SET name = $1, phone = $2, email = $3, status = $4, confirmed_at = $5, updated_at = $6
 		WHERE wedding_id = $7 AND id = $8`
 
-	res, err := r.db.ExecContext(ctx, query,
+	res, err := exec.ExecContext(ctx, query,
 		g.Name, g.Phone, g.Email, g.Status, g.ConfirmedAt, g.UpdatedAt,
 		g.WeddingID, g.ID,
 	)
@@ -127,7 +133,8 @@ func (r *guestRepository) Update(ctx context.Context, g *entity.Guest) error {
 }
 
 func (r *guestRepository) Delete(ctx context.Context, weddingID, id string) error {
-	res, err := r.db.ExecContext(ctx, `DELETE FROM guests WHERE wedding_id = $1 AND id = $2`, weddingID, id)
+	exec := executorFromContext(ctx, r.db)
+	res, err := exec.ExecContext(ctx, `DELETE FROM guests WHERE wedding_id = $1 AND id = $2`, weddingID, id)
 	if err != nil {
 		return fmt.Errorf("guestRepository.Delete: %w", err)
 	}
@@ -138,6 +145,7 @@ func (r *guestRepository) Delete(ctx context.Context, weddingID, id string) erro
 }
 
 func (r *guestRepository) CountByWedding(ctx context.Context, weddingID string) (total, confirmed, pending, declined int, err error) {
+	exec := executorFromContext(ctx, r.db)
 	query := `
 		SELECT
 			COUNT(*),
@@ -146,7 +154,7 @@ func (r *guestRepository) CountByWedding(ctx context.Context, weddingID string) 
 			COUNT(CASE WHEN status = 'declined' THEN 1 END)
 		FROM guests WHERE wedding_id = $1`
 
-	err = r.db.QueryRowContext(ctx, query, weddingID).Scan(&total, &confirmed, &pending, &declined)
+	err = exec.QueryRowContext(ctx, query, weddingID).Scan(&total, &confirmed, &pending, &declined)
 	if err != nil {
 		err = fmt.Errorf("guestRepository.CountByWedding: %w", err)
 	}

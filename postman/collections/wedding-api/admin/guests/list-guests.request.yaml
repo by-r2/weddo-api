@@ -1,0 +1,26 @@
+$kind: http-request
+description: Lista todos os convidados com filtros opcionais de status e busca.
+url: "{{baseUrl}}/admin/guests?page=1&per_page=20&status=&search="
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+  - key: per_page
+    value: "20"
+  - key: status
+    value: ""
+    description: pending, confirmed ou declined
+  - key: search
+    value: ""
+    description: Busca por nome
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+
+      const body = pm.response.json();
+      if (body.data && body.data.length > 0) {
+        pm.environment.set('guestId', body.data[0].id);
+      }
+    language: text/javascript
+order: 1000

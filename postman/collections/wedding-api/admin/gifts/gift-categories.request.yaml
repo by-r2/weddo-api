@@ -1,0 +1,9 @@
+$kind: http-request
+description: Categorias distintas já usadas nos presentes do catálogo (tenant via JWT).
+url: "{{baseUrl}}/admin/gift-categories"
+method: GET
+headers:
+  - key: Authorization
+    value: Bearer {{jwt}}
+    description: JWT do admin
+order: 1000

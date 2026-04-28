@@ -1,0 +1,3 @@
+$kind: collection
+description: CRUD de presentes para a lista virtual.
+order: 5000

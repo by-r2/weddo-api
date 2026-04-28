@@ -1,0 +1,10 @@
+$kind: collection
+description: Endpoints protegidos por JWT. Rode **login** primeiro para popular
+  o token automaticamente.
+auth:
+  - id: a7005ba7-df3f-47ef-9009-09529a3fcc49
+    type: bearer
+    name: bearer auth
+    credentials:
+      token: "{{token}}"
+order: 2000

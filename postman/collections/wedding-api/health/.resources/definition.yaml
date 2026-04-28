@@ -1,0 +1,3 @@
+$kind: collection
+description: Endpoint de monitoramento.
+order: 1000

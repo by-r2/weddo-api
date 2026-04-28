@@ -4,16 +4,16 @@
   },
   "entities": {
     "environments": [
-      "environments/local.postman_environment.json"
+      "environments/local.environment.yaml"
     ],
     "flows": [],
     "globals": [
-      "globals/workspace.postman_globals.json"
+      "globals/workspace.globals.yaml"
     ],
     "mocks": [],
     "specs": [],
     "collections": [
-      "collections/wedding-api.postman_collection.json"
+      "collections/wedding-api"
     ]
   }
 }

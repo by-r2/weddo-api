@@ -1,0 +1,12 @@
+$kind: http-request
+description: Importa alterações da planilha para o banco (convites e convidados).
+url: "{{baseUrl}}/admin/sheets/pull"
+method: POST
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200 ou 503', () => {
+        pm.expect(pm.response.code).to.be.oneOf([200, 503]);
+      });
+    language: text/javascript
+order: 3000

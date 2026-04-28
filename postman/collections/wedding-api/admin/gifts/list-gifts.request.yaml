@@ -1,0 +1,23 @@
+$kind: http-request
+description: Lista todos os presentes (incluindo purchased). Para admin.
+url: "{{baseUrl}}/admin/gifts?page=1&per_page=20&category=&status=&search="
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+  - key: per_page
+    value: "20"
+  - key: category
+    value: ""
+    description: Filtrar por categoria
+  - key: status
+    value: ""
+    description: available ou purchased
+  - key: search
+    value: ""
+    description: Busca por nome
+scripts:
+  - type: afterResponse
+    code: pm.test('Status 200', () => pm.response.to.have.status(200));
+    language: text/javascript
+order: 3000

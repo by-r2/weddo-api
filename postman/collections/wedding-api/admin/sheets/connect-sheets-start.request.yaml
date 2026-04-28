@@ -1,0 +1,18 @@
+$kind: http-request
+description: Inicia OAuth com Google e retorna auth_url. Abra o URL no navegador
+  para concluir a conexão do tenant.
+url: "{{baseUrl}}/admin/sheets/connect/start"
+method: POST
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200 ou 503', () => {
+        pm.expect(pm.response.code).to.be.oneOf([200, 503]);
+      });
+      if (pm.response.code === 200) {
+        pm.test('Tem auth_url', () => {
+          pm.expect(pm.response.json().auth_url).to.be.a('string');
+        });
+      }
+    language: text/javascript
+order: 1000

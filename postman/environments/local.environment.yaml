@@ -1,0 +1,32 @@
+name: local
+values:
+  - key: baseUrl
+    enabled: true
+    value: 'http://localhost:8080/api/v1'
+  - key: weddingId
+    enabled: true
+    value: ''
+  - key: adminEmail
+    enabled: true
+    value: admin@manurafa.com.br
+  - key: adminPassword
+    enabled: true
+    value: your-awesome-password
+  - key: token
+    enabled: true
+    value: ''
+  - key: invitationId
+    enabled: true
+    value: ''
+  - key: invitationCode
+    enabled: true
+    value: ''
+  - key: guestId
+    enabled: true
+    value: ''
+  - key: giftId
+    enabled: true
+    value: ''
+  - key: paymentId
+    enabled: true
+    value: ''

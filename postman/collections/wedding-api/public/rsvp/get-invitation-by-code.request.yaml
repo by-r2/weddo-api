@@ -1,0 +1,18 @@
+$kind: http-request
+description: "Retorna o convite e todos os convidados do grupo pelo `code` (ex.:
+  campo no convite físico ou link do site)."
+url: "{{baseUrl}}/w/{{weddingId}}/rsvp/invitation?code={{invitationCode}}"
+method: GET
+queryParams:
+  - key: code
+    value: "{{invitationCode}}"
+    description: Código único do convite (mesmo do painel)
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      pm.test('Tem guests', () => {
+        pm.expect(pm.response.json().guests).to.be.an('array');
+      });
+    language: text/javascript
+order: 2000

@@ -1,0 +1,33 @@
+$kind: http-request
+description: >-
+  Confirma presença de um convidado no convite identificado por `code` (mesmo do
+  cadastro do convite). O nome deve ser o cadastrado naquele convite.
+
+
+  - **200**: Confirmado com sucesso
+
+  - **404**: Convite ou convidado não encontrado
+
+  - **409**: Já confirmado anteriormente
+url: "{{baseUrl}}/w/{{weddingId}}/rsvp"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "code": "{{invitationCode}}",
+      "name": "João Silva"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200 ou 409', () => {
+        pm.expect(pm.response.code).to.be.oneOf([200, 409]);
+      });
+      pm.test('Tem mensagem', () => {
+        pm.expect(pm.response.json().message).to.be.a('string');
+      });
+    language: text/javascript
+order: 1000

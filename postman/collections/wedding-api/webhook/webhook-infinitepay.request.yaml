@@ -1,0 +1,42 @@
+$kind: http-request
+description: >-
+  Simula uma notificação da InfinitePay.
+
+
+  Em produção, este endpoint é chamado automaticamente pela InfinitePay quando o
+  pagamento é aprovado.
+
+
+  - `order_nsu`: ID do pagamento no nosso sistema (payment_id)
+
+  - `paid_amount`: valor pago em centavos
+
+
+  Use quando `PAYMENT_PROVIDER=infinitepay`.
+url: "{{baseUrl}}/payments/webhook"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "invoice_slug": "abc123",
+      "amount": 35000,
+      "paid_amount": 35000,
+      "installments": 1,
+      "capture_method": "pix",
+      "transaction_nsu": "uuid-da-transacao",
+      "order_nsu": "{{paymentId}}",
+      "receipt_url": "https://comprovante.com/123"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200 ou 503', () => {
+        pm.expect(pm.response.code).to.be.oneOf([200, 503]);
+      });
+    language: text/javascript
+order: 1000

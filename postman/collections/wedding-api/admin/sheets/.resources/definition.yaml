@@ -1,0 +1,3 @@
+$kind: collection
+description: Sincronização manual bidirecional com Google Sheets.
+order: 7000

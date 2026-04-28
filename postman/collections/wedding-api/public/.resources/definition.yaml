@@ -1,0 +1,8 @@
+$kind: collection
+description: Endpoints públicos. Não requerem autenticação. O tenant é
+  identificado pelo `weddingId` na URL.
+auth:
+  - id: ""
+    type: noauth
+    name: No Auth
+order: 3000

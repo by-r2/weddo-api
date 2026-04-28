@@ -338,20 +338,32 @@ PUT    /api/v1/admin/invitations/{id}     # atualizar
 DELETE /api/v1/admin/invitations/{id}     # remover (cascade guests)
 ```
 
-**Criar convite com convidados:**
+**Criar convite com convidados (schema completo):**
 
 ```json
 {
   "code": "SILVA-001",
   "label": "Família Silva",
   "max_guests": 4,
+  "notes": "Mesa próxima à família",
   "guests": [
-    { "name": "João Silva" },
-    { "name": "Maria Silva" },
-    { "name": "Pedro Silva" }
+    {
+      "name": "João Silva",
+      "phone": "11999998888",
+      "email": "joao@email.com",
+      "status": "pending"
+    },
+    {
+      "name": "Maria Silva",
+      "phone": "11999997777",
+      "email": "maria@email.com",
+      "status": "confirmed"
+    }
   ]
 }
 ```
+
+> `status` é opcional em cada convidado (`pending`, `confirmed` ou `declined`). Se omitido, usa `pending`.
 
 **Detalhar convite (response):**
 
@@ -380,6 +392,19 @@ PUT    /api/v1/admin/guests/{id}          # atualizar
 DELETE /api/v1/admin/guests/{id}          # remover
 POST   /api/v1/admin/invitations/{id}/guests  # adicionar a convite existente
 ```
+
+**Adicionar convidado a convite existente:**
+
+```json
+{
+  "name": "Ana Silva",
+  "phone": "11988887777",
+  "email": "ana@email.com",
+  "status": "pending"
+}
+```
+
+> `status` também é opcional aqui e segue o mesmo comportamento (default `pending`).
 
 ### Presentes (Gifts)
 
