@@ -8,7 +8,6 @@ request:
     type: json
     content: |-
       {
-        "code": "SILVA-001",
         "label": "Família Silva",
         "max_guests": 4,
         "notes": "Mesa próxima à família",

@@ -1,4 +1,5 @@
 $kind: http-request
+name: create-invitation
 description: Cria um convite com convidados inline (schema completo). O campo `guests` é opcional.
 url: "{{baseUrl}}/admin/invitations"
 method: POST
@@ -8,7 +9,6 @@ body:
   type: json
   content: |-
     {
-      "code": "SILVA-001",
       "label": "Família Silva",
       "max_guests": 4,
       "notes": "Mesa próxima à família",
@@ -43,5 +43,4 @@ scripts:
         }
       }
     language: text/javascript
-examples: .resources/create-invitation.resources/examples
 order: 1000

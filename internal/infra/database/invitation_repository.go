@@ -3,10 +3,12 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/by-r2/weddo-api/internal/domain/entity"
 	"github.com/by-r2/weddo-api/internal/domain/repository"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type invitationRepository struct {
@@ -28,6 +30,10 @@ func (r *invitationRepository) Create(ctx context.Context, inv *entity.Invitatio
 		inv.CreatedAt, inv.UpdatedAt,
 	)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return entity.ErrAlreadyExists
+		}
 		return fmt.Errorf("invitationRepository.Create: %w", err)
 	}
 	return nil

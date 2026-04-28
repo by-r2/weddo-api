@@ -187,6 +187,7 @@ CORS_ALLOWED_ORIGINS=https://manurafa.com.br,https://www.manurafa.com.br
 |----------|-----------|---------|-------------|
 | `LOG_LEVEL` | Nível mínimo de log: `debug`, `info`, `warn`, `error` | `info` | Não |
 | `LOG_FORMAT` | Formato do log: `text` (legível) ou `json` (estruturado) | `text` | Não |
+| `INVITATION_CODE_LENGTH` | Tamanho do código automático de convite (alfanumérico com ordem mista) | `5` | Não |
 
 ### Linha de log por requisição HTTP (middleware)
 

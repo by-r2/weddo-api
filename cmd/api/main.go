@@ -81,7 +81,7 @@ func main() {
 	}
 	weddingUC := wedding.NewUseCase(weddingRepo, userRepo, cfg.JWTSecret, cfg.JWTExpirationHours, ensureCashTpl)
 	rsvpUC := rsvp.NewUseCase(guestRepo, invitationRepo)
-	invitationUC := invitation.NewUseCase(invitationRepo, guestRepo, txManager)
+	invitationUC := invitation.NewUseCase(invitationRepo, guestRepo, txManager, cfg.InvitationCodeLen)
 	guestUC := guest.NewUseCase(guestRepo, invitationRepo)
 	giftUC := giftuc.NewUseCase(giftRepo, paymentRepo)
 	userUC := user.NewUseCase(userRepo)

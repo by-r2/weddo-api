@@ -41,7 +41,6 @@ func (h *InvitationHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	inv, err := h.invUC.Create(r.Context(), invitation.CreateInput{
 		WeddingID: weddingID,
-		Code:      req.Code,
 		Label:     req.Label,
 		MaxGuests: req.MaxGuests,
 		Notes:     req.Notes,

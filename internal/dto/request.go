@@ -41,7 +41,6 @@ type RSVPRequest struct {
 // Invitations
 
 type CreateInvitationRequest struct {
-	Code      string              `json:"code" validate:"required,max=50"`
 	Label     string              `json:"label" validate:"required,max=100"`
 	MaxGuests int                 `json:"max_guests" validate:"required,min=1"`
 	Notes     string              `json:"notes"`

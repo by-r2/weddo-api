@@ -350,7 +350,6 @@ DELETE /api/v1/admin/invitations/{id}     # remover (cascade guests)
 
 ```json
 {
-  "code": "SILVA-001",
   "label": "Família Silva",
   "max_guests": 4,
   "notes": "Mesa próxima à família",
@@ -371,6 +370,7 @@ DELETE /api/v1/admin/invitations/{id}     # remover (cascade guests)
 }
 ```
 
+> O `code` é gerado automaticamente pela API (alfanumérico curto com letras maiúsculas e números em ordem aleatória).
 > `status` é opcional em cada convidado (`pending`, `confirmed` ou `declined`). Se omitido, usa `pending`.
 
 **Detalhar convite (response):**
