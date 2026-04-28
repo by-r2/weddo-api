@@ -6,12 +6,13 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/by-r2/weddo-api/internal/domain/entity"
 	"github.com/by-r2/weddo-api/internal/dto"
 	"github.com/by-r2/weddo-api/internal/infra/web/middleware"
 	paymentuc "github.com/by-r2/weddo-api/internal/usecase/payment"
+	"github.com/go-chi/chi/v5"
 )
 
 type PaymentHandler struct {
@@ -30,16 +31,15 @@ func (h *PaymentHandler) checkAvailable(w http.ResponseWriter) bool {
 	return true
 }
 
-func (h *PaymentHandler) Purchase(w http.ResponseWriter, r *http.Request) {
+func (h *PaymentHandler) Checkout(w http.ResponseWriter, r *http.Request) {
 	if !h.checkAvailable(w) {
 		return
 	}
 	weddingID := middleware.GetWeddingID(r.Context())
-	giftID := chi.URLParam(r, "id")
 
-	var req dto.PurchaseGiftRequest
+	var req dto.CheckoutRequest
 	if err := decodeAndValidate(r, &req); err != nil {
-		respondError(w, http.StatusBadRequest, "Requisição inválida. Verifique os campos obrigatórios.")
+		respondError(w, http.StatusBadRequest, "Requisição inválida. Informe lista de presentes e dados do pagador.")
 		return
 	}
 
@@ -48,9 +48,19 @@ func (h *PaymentHandler) Purchase(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.paymentUC.Purchase(r.Context(), paymentuc.PurchaseInput{
+	lines := make([]paymentuc.CheckoutLineInput, 0, len(req.Items))
+	for _, it := range req.Items {
+		lines = append(lines, paymentuc.CheckoutLineInput{
+			GiftID:            strings.TrimSpace(it.GiftID),
+			Amount:            it.Amount,
+			CustomName:        it.CustomName,
+			CustomDescription: it.CustomDescription,
+		})
+	}
+
+	result, err := h.paymentUC.Checkout(r.Context(), paymentuc.CheckoutInput{
 		WeddingID:       weddingID,
-		GiftID:          giftID,
+		Lines:           lines,
 		PayerName:       req.PayerName,
 		PayerEmail:      req.PayerEmail,
 		Message:         req.Message,
@@ -61,79 +71,32 @@ func (h *PaymentHandler) Purchase(w http.ResponseWriter, r *http.Request) {
 		RedirectURL:     req.RedirectURL,
 	})
 	if err != nil {
-		if errors.Is(err, entity.ErrNotFound) {
+		switch {
+		case errors.Is(err, entity.ErrNotFound):
 			respondError(w, http.StatusNotFound, "Presente não encontrado.")
-			return
-		}
-		if errors.Is(err, paymentuc.ErrGiftUnavailable) {
-			respondError(w, http.StatusConflict, "Este presente já foi comprado.")
-			return
-		}
-		respondInternalError(w, r, "payment.handler.Purchase", err, "Erro ao processar pagamento.")
-		return
-	}
-
-	resp := dto.PurchaseResponse{
-		PaymentID:  result.Payment.ID,
-		ProviderID: result.Payment.ProviderID,
-		Status:     string(result.Payment.Status),
-	}
-
-	if result.CheckoutURL != "" {
-		resp.CheckoutURL = result.CheckoutURL
-	}
-
-	if result.QRCode != "" {
-		resp.QRCode = result.QRCode
-		resp.QRCodeBase64 = result.QRCodeBase64
-		if result.Payment.PixExpiration != nil {
-			s := result.Payment.PixExpiration.Format("2006-01-02T15:04:05Z")
-			resp.ExpiresAt = &s
-		}
-	}
-
-	respondJSON(w, http.StatusCreated, resp)
-}
-
-func (h *PaymentHandler) PurchaseCash(w http.ResponseWriter, r *http.Request) {
-	if !h.checkAvailable(w) {
-		return
-	}
-	weddingID := middleware.GetWeddingID(r.Context())
-
-	var req dto.PurchaseCashGiftRequest
-	if err := decodeAndValidate(r, &req); err != nil {
-		respondError(w, http.StatusBadRequest, "Requisição inválida. Informe valor e dados do pagador.")
-		return
-	}
-
-	if req.PaymentMethod == "credit_card" && req.CardToken == "" {
-		respondError(w, http.StatusBadRequest, "O campo card_token é obrigatório para pagamento com cartão.")
-		return
-	}
-
-	result, err := h.paymentUC.PurchaseCash(r.Context(), paymentuc.PurchaseCashInput{
-		WeddingID:       weddingID,
-		Amount:          req.Amount,
-		PayerName:       req.PayerName,
-		PayerEmail:      req.PayerEmail,
-		Message:         req.Message,
-		PaymentMethod:   req.PaymentMethod,
-		CardToken:       req.CardToken,
-		PaymentMethodID: req.PaymentMethodID,
-		Installments:    req.Installments,
-		RedirectURL:     req.RedirectURL,
-	})
-	if err != nil {
-		if errors.Is(err, paymentuc.ErrCashAmountOutOfRange) {
+		case errors.Is(err, paymentuc.ErrGiftUnavailable):
+			respondError(w, http.StatusConflict, "Um dos presentes não está mais disponível.")
+		case errors.Is(err, paymentuc.ErrCheckoutEmptyItems):
+			respondError(w, http.StatusBadRequest, "Informe pelo menos um item.")
+		case errors.Is(err, paymentuc.ErrCheckoutDuplicateGiftLine):
+			respondError(w, http.StatusBadRequest, "Linha repetida para o mesmo presente.")
+		case errors.Is(err, paymentuc.ErrCheckoutInvalidCatalogExtras):
+			respondError(w, http.StatusBadRequest, "Itens do catálogo não aceitam valor ou texto próprio.")
+		case errors.Is(err, paymentuc.ErrCheckoutCashAmountMissing):
+			respondError(w, http.StatusBadRequest, "Informe o valor da contribuição em dinheiro.")
+		case errors.Is(err, paymentuc.ErrCashAmountOutOfRange):
 			respondError(w, http.StatusBadRequest, "Valor inválido. Use entre R$ 1,00 e R$ 100.000,00.")
-			return
+		default:
+			if strings.Contains(err.Error(), "excede o limite") {
+				respondError(w, http.StatusBadRequest, "Texto da contribuição excede o limite.")
+				return
+			}
+			respondInternalError(w, r, "payment.handler.Checkout", err, "Erro ao processar pagamento.")
 		}
-		respondInternalError(w, r, "payment.handler.PurchaseCash", err, "Erro ao processar pagamento.")
 		return
 	}
 
-	resp := dto.PurchaseResponse{
+	resp := dto.CheckoutResponse{
 		PaymentID:  result.Payment.ID,
 		ProviderID: result.Payment.ProviderID,
 		Status:     string(result.Payment.Status),
@@ -162,7 +125,7 @@ func (h *PaymentHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
 	weddingID := middleware.GetWeddingID(r.Context())
 	id := chi.URLParam(r, "id")
 
-	p, giftName, err := h.paymentUC.GetStatus(r.Context(), weddingID, id)
+	p, lines, err := h.paymentUC.GetStatus(r.Context(), weddingID, id)
 	if err != nil {
 		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Pagamento não encontrado.")
@@ -172,10 +135,20 @@ func (h *PaymentHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	out := make([]dto.PaymentLineStatusDTO, 0, len(lines))
+	for _, ln := range lines {
+		out = append(out, dto.PaymentLineStatusDTO{
+			GiftID: ln.GiftID,
+			Kind:   string(ln.Kind),
+			Amount: ln.Amount,
+			Label:  ln.Label,
+		})
+	}
+
 	respondJSON(w, http.StatusOK, dto.PaymentStatusResponse{
 		PaymentID: p.ID,
 		Status:    string(p.Status),
-		GiftName:  giftName,
+		Lines:     out,
 	})
 }
 
@@ -261,8 +234,7 @@ func (h *PaymentHandler) WebhookInfinitePay(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusOK)
 }
 
-// Webhook é o handler legado — roteia para o provedor correto com base no corpo.
-// Mantido para retrocompatibilidade; prefira usar os endpoints específicos.
+// Webhook roteia para o provedor correto conforme PAYMENT_PROVIDER.
 func (h *PaymentHandler) Webhook(w http.ResponseWriter, r *http.Request) {
 	if !h.checkAvailable(w) {
 		return
@@ -291,8 +263,13 @@ func (h *PaymentHandler) ListAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	items := make([]dto.PaymentResponse, len(payments))
-	for i, p := range payments {
-		items[i] = h.paymentToDTO(r.Context(), weddingID, &p)
+	for i := range payments {
+		dtoResp, err := h.paymentToDTO(r.Context(), weddingID, &payments[i])
+		if err != nil {
+			respondInternalError(w, r, "payment.handler.ListAdmin.lines", err, "Erro ao montar pagamento.")
+			return
+		}
+		items[i] = dtoResp
 	}
 
 	respondJSON(w, http.StatusOK, dto.PaginatedResponse{
@@ -318,13 +295,33 @@ func (h *PaymentHandler) GetAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondJSON(w, http.StatusOK, h.paymentToDTO(r.Context(), weddingID, p))
+	resp, err := h.paymentToDTO(r.Context(), weddingID, p)
+	if err != nil {
+		respondInternalError(w, r, "payment.handler.GetAdmin.dto", err, "Erro interno do servidor.")
+		return
+	}
+	respondJSON(w, http.StatusOK, resp)
 }
 
-func (h *PaymentHandler) paymentToDTO(ctx context.Context, weddingID string, p *entity.Payment) dto.PaymentResponse {
+func (h *PaymentHandler) paymentToDTO(ctx context.Context, weddingID string, p *entity.Payment) (dto.PaymentResponse, error) {
+	details, err := h.paymentUC.PaymentLinesForAdmin(ctx, weddingID, p.ID)
+	if err != nil {
+		return dto.PaymentResponse{}, err
+	}
+	items := make([]dto.PaymentLineResponse, 0, len(details))
+	for _, d := range details {
+		items = append(items, dto.PaymentLineResponse{
+			GiftID:            d.GiftID,
+			Kind:              string(d.GiftKind),
+			Amount:            d.Amount,
+			CustomName:        d.CustomName,
+			CustomDescription: d.CustomDescription,
+			Label:             d.Label,
+		})
+	}
+
 	resp := dto.PaymentResponse{
 		ID:            p.ID,
-		GiftID:        p.GiftID,
 		ProviderID:    p.ProviderID,
 		Amount:        p.Amount,
 		Status:        string(p.Status),
@@ -332,17 +329,12 @@ func (h *PaymentHandler) paymentToDTO(ctx context.Context, weddingID string, p *
 		PayerName:     p.PayerName,
 		PayerEmail:    p.PayerEmail,
 		Message:       p.Message,
+		Items:         items,
 		CreatedAt:     p.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	}
-	if p.GiftID == "" {
-		resp.GiftKind = "cash"
-	} else {
-		resp.GiftKind = "gift"
-	}
-	resp.GiftName = h.paymentUC.ResolveGiftDisplayName(ctx, weddingID, p)
 	if p.PaidAt != nil {
 		s := p.PaidAt.Format("2006-01-02T15:04:05Z")
 		resp.PaidAt = &s
 	}
-	return resp
+	return resp, nil
 }

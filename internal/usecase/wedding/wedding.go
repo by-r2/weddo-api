@@ -7,22 +7,26 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/by-r2/weddo-api/internal/domain/entity"
 	"github.com/by-r2/weddo-api/internal/domain/repository"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UseCase struct {
-	weddingRepo repository.WeddingRepository
-	userRepo    repository.UserRepository
-	jwtSecret   string
-	jwtExpH     int
+	weddingRepo   repository.WeddingRepository
+	userRepo      repository.UserRepository
+	jwtSecret     string
+	jwtExpH       int
+	ensureCashTpl func(context.Context, string) error
 }
 
-func NewUseCase(wr repository.WeddingRepository, ur repository.UserRepository, jwtSecret string, jwtExpH int) *UseCase {
-	return &UseCase{weddingRepo: wr, userRepo: ur, jwtSecret: jwtSecret, jwtExpH: jwtExpH}
+func NewUseCase(wr repository.WeddingRepository, ur repository.UserRepository, jwtSecret string, jwtExpH int, ensureCashTpl func(context.Context, string) error) *UseCase {
+	return &UseCase{
+		weddingRepo: wr, userRepo: ur, jwtSecret: jwtSecret, jwtExpH: jwtExpH,
+		ensureCashTpl: ensureCashTpl,
+	}
 }
 
 // AuthResult agrupa os dados retornados após autenticação ou registro.
@@ -219,6 +223,12 @@ func (uc *UseCase) Seed(ctx context.Context, slug, title, date, partner1, partne
 		return fmt.Errorf("wedding.Seed: create wedding: %w", err)
 	}
 
+	if uc.ensureCashTpl != nil {
+		if err := uc.ensureCashTpl(ctx, w.ID); err != nil {
+			return fmt.Errorf("wedding.Seed: cash gift template: %w", err)
+		}
+	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("wedding.Seed: hash password: %w", err)
@@ -267,6 +277,12 @@ func (uc *UseCase) createWedding(ctx context.Context, partner1, partner2, date, 
 
 	if err := uc.weddingRepo.Create(ctx, w); err != nil {
 		return nil, fmt.Errorf("wedding: create wedding: %w", err)
+	}
+
+	if uc.ensureCashTpl != nil {
+		if err := uc.ensureCashTpl(ctx, w.ID); err != nil {
+			return nil, fmt.Errorf("wedding: cash gift template: %w", err)
+		}
 	}
 
 	return w, nil

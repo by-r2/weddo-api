@@ -40,26 +40,26 @@ Todas as tabelas de negócio possuem `wedding_id` como chave estrangeira para `w
                                    │ updated_at     TIMESTAMPTZ       │
          │  wedding_id FK          └───────────────────────────────────┘
          ▼
-┌───────────────────────────────────┐   ┌───────────────────────────────────┐
-│              gifts                │   │            payments               │
-├───────────────────────────────────┤   ├───────────────────────────────────┤
-│ id            TEXT PK             │◄──│ id              TEXT PK           │
-│ wedding_id    TEXT FK             │   │ gift_id         TEXT FK           │
-│ name          TEXT                │   │ wedding_id      TEXT FK           │
-│ description   TEXT                │   │ provider_id     TEXT              │
-│ price         DOUBLE PRECISION    │   │ amount          DOUBLE PRECISION │
-│ image_url     TEXT                │   │ status          TEXT              │
-│ category      TEXT                │   │ payment_method  TEXT              │
-│ status        TEXT                │   │ payer_name      TEXT              │
-│ created_at    TIMESTAMPTZ         │   │ payer_email     TEXT              │
-│ updated_at    TIMESTAMPTZ         │   │ message         TEXT              │
-└───────────────────────────────────┘   │ pix_qr_code     TEXT              │
-                                        │ pix_expiration  TIMESTAMPTZ       │
-                                        │ paid_at         TIMESTAMPTZ       │
-                                        │ created_at      TIMESTAMPTZ       │
-                                        │ updated_at      TIMESTAMPTZ       │
-                                        └───────────────────────────────────┘
+┌───────────────────────────────────┐         ┌───────────────────────────────────┐
+│              gifts                │         │            payments               │
+├───────────────────────────────────┤         ├───────────────────────────────────┤
+│ id            TEXT PK             │         │ id              TEXT PK           │
+│ wedding_id    TEXT FK             │         │ wedding_id      TEXT FK           │
+│ kind          TEXT                │         │ provider_id     TEXT              │
+│ name, description, price, ...     │         │ amount (total)  DOUBLE PRECISION  │
+│ image_url, category, status, ...    │         │ status, payment_method, ...      │
+└───────────────────────────────────┘         └───────────────────────────────────┘
+         ▲                                               ▲
+         │ gift_id (linha: catálogo ou cash_template)    │ payment_id
+         │         ┌─────────────────────────────────────┴──┐
+         └─────────│            payment_items               │
+                   ├────────────────────────────────────────┤
+                   │ id, payment_id FK, gift_id FK, amount, │
+                   │ custom_name, custom_description, ...   │
+                   └────────────────────────────────────────┘
 ```
+
+Cada cobrança tem uma ou mais linhas em `payment_items`. O total em `payments.amount` corresponde à soma das linhas. Presentes de catálogo referenciam `gifts` com `kind = catalog`; contribuição em dinheiro usa o único `gift` por casamento com `kind = cash_template` (id `cashttpl-<wedding_id>`).
 
 ## Tabelas
 
@@ -117,32 +117,32 @@ Pessoa individual vinculada a um convite.
 
 ### gifts
 
-Presente virtual no catálogo. O valor vai para a conta dos noivos.
+Linhas de **`kind = catalog`** são o catálogo exibido na lista de presentes. Existe **no máximo um** registro **`kind = cash_template` por wedding** (modelo de contribuição em dinheiro; não aparece na listagem de catálogo).
 
 | Coluna | Tipo | Restrições | Descrição |
 |--------|------|------------|-----------|
-| id | TEXT | PK | UUID v4 |
+| id | TEXT | PK | UUID v4 ou `cashttpl-<wedding_id>` para o template de dinheiro |
 | wedding_id | TEXT | FK → weddings(id), NOT NULL | Casamento ao qual pertence |
+| kind | TEXT | NOT NULL | `catalog` ou `cash_template` |
 | name | TEXT | NOT NULL | Nome do presente |
 | description | TEXT | | Descrição detalhada |
-| price | DOUBLE PRECISION | NOT NULL | Valor em reais |
+| price | DOUBLE PRECISION | NOT NULL | Valor em reais (template de dinheiro pode ser 0) |
 | image_url | TEXT | | URL da imagem |
-| category | TEXT | NOT NULL | Categoria (ex: "Cozinha", "Lua de Mel") |
+| category | TEXT | NOT NULL | Categoria (ex: "Cozinha"); template pode usar `'cash'` |
 | status | TEXT | NOT NULL, DEFAULT 'available' | `available` ou `purchased` |
 | created_at | TIMESTAMPTZ | NOT NULL | Timestamp de criação |
 | updated_at | TIMESTAMPTZ | NOT NULL | Timestamp da última atualização |
 
 ### payments
 
-Transação de pagamento associada a um presente.
+Cabeçalho da cobrança no gateway (valor total igual à soma de `payment_items`).
 
 | Coluna | Tipo | Restrições | Descrição |
 |--------|------|------------|-----------|
 | id | TEXT | PK | UUID v4 |
-| gift_id | TEXT | FK → gifts(id), NOT NULL | Presente sendo comprado |
 | wedding_id | TEXT | FK → weddings(id), NOT NULL | Casamento (desnormalizado) |
 | provider_id | TEXT | | ID da transação no provedor (InfinitePay slug ou Mercado Pago ID) |
-| amount | DOUBLE PRECISION | NOT NULL | Valor cobrado em reais |
+| amount | DOUBLE PRECISION | NOT NULL | Valor total em reais |
 | status | TEXT | NOT NULL, DEFAULT 'pending' | `pending`, `approved`, `rejected`, `expired` |
 | payment_method | TEXT | NOT NULL | `pix` ou `credit_card` |
 | payer_name | TEXT | NOT NULL | Nome de quem presenteia |
@@ -153,6 +153,20 @@ Transação de pagamento associada a um presente.
 | paid_at | TIMESTAMPTZ | | Timestamp do pagamento confirmado |
 | created_at | TIMESTAMPTZ | NOT NULL | Timestamp de criação |
 | updated_at | TIMESTAMPTZ | NOT NULL | Timestamp da última atualização |
+
+### payment_items
+
+Uma ou mais linhas por pagamento: presente de catálogo ou linha de contribuição em dinheiro (gift `cash_template`; texto opcional na linha).
+
+| Coluna | Tipo | Restrições | Descrição |
+|--------|------|------------|-----------|
+| id | TEXT | PK | UUID da linha |
+| payment_id | TEXT | FK → payments(id), NOT NULL | Pagamento pai |
+| gift_id | TEXT | FK → gifts(id), NOT NULL | Gift do catálogo ou `cash_template` |
+| amount | DOUBLE PRECISION | NOT NULL | Valor da linha |
+| custom_name | TEXT | | Opcional para contribuição em dinheiro |
+| custom_description | TEXT | | Opcional para contribuição em dinheiro |
+| created_at | TIMESTAMPTZ | NOT NULL | Timestamp de criação |
 
 ## Enums de Status
 
@@ -184,16 +198,9 @@ Transação de pagamento associada a um presente.
 
 ```
 migrations/
-├── 001_create_weddings.up.sql
-├── 001_create_weddings.down.sql
-├── 002_create_invitations.up.sql
-├── 002_create_invitations.down.sql
-├── 003_create_guests.up.sql
-├── 003_create_guests.down.sql
-├── 004_create_gifts.up.sql
-├── 004_create_gifts.down.sql
-├── 005_create_payments.up.sql
-└── 005_create_payments.down.sql
+├── … (001–008: weddings até ajustes de payments)
+├── 009_payment_checkout.up.sql   # gifts.kind, payment_items, drop payments.gift_id
+└── 009_payment_checkout.down.sql
 ```
 
 Executadas automaticamente no boot via golang-migrate, ou manualmente:
@@ -220,8 +227,11 @@ CREATE INDEX idx_guests_wedding_name ON guests(wedding_id, LOWER(name));
 CREATE INDEX idx_gifts_wedding_id ON gifts(wedding_id);
 CREATE INDEX idx_gifts_category ON gifts(wedding_id, category);
 CREATE INDEX idx_gifts_status ON gifts(wedding_id, status);
+-- Um cash_template por wedding (parcial): ver migração 009
 
-CREATE INDEX idx_payments_gift_id ON payments(gift_id);
+CREATE INDEX idx_payment_items_payment_id ON payment_items(payment_id);
+CREATE INDEX idx_payment_items_gift_id ON payment_items(gift_id);
+
 CREATE INDEX idx_payments_wedding_id ON payments(wedding_id);
 CREATE INDEX idx_payments_status ON payments(wedding_id, status);
 CREATE INDEX idx_payments_provider_id ON payments(provider_id);
@@ -239,4 +249,4 @@ DATABASE_URL=postgresql://user:pass@host:5432/wedding?sslmode=require
 
 ### Nota sobre desnormalização de wedding_id
 
-`guests` e `payments` possuem `wedding_id` mesmo sendo alcançável via `invitation_id → invitations.wedding_id` ou `gift_id → gifts.wedding_id`. Essa desnormalização intencional evita JOINs em queries frequentes que filtram por tenant, como listagens e dashboards.
+`guests` e `payments` possuem `wedding_id` para filtro direto por tenant. Linhas detalham o que foi cobrado em `payment_items` (cada linha referencia um `gift_id`).

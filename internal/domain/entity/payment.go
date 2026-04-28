@@ -2,7 +2,7 @@ package entity
 
 import "time"
 
-// PaymentCashGiftLabel rótulo exibido para pagamentos sem item em `gifts` (contribuição em dinheiro).
+// PaymentCashGiftLabel rótulo padrão para o gift template de contribuição em dinheiro (sem personalização por linha).
 const PaymentCashGiftLabel = "Contribuição em dinheiro"
 
 type PaymentStatus string
@@ -23,7 +23,6 @@ const (
 
 type Payment struct {
 	ID             string
-	GiftID         string
 	WeddingID      string
 	ProviderID     string
 	Amount         float64

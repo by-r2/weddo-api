@@ -12,7 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/by-r2/weddo-api/internal/domain/gateway"
 	"github.com/by-r2/weddo-api/internal/infra/config"
 	"github.com/by-r2/weddo-api/internal/infra/database"
@@ -30,6 +29,7 @@ import (
 	sheetsuc "github.com/by-r2/weddo-api/internal/usecase/sheets"
 	"github.com/by-r2/weddo-api/internal/usecase/user"
 	"github.com/by-r2/weddo-api/internal/usecase/wedding"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -75,7 +75,10 @@ func main() {
 	googleIntegrationRepo := database.NewGoogleIntegrationRepository(db)
 	userRepo := database.NewUserRepository(db)
 
-	weddingUC := wedding.NewUseCase(weddingRepo, userRepo, cfg.JWTSecret, cfg.JWTExpirationHours)
+	ensureCashTpl := func(ctx context.Context, weddingID string) error {
+		return giftuc.EnsureCashTemplate(ctx, giftRepo, weddingID)
+	}
+	weddingUC := wedding.NewUseCase(weddingRepo, userRepo, cfg.JWTSecret, cfg.JWTExpirationHours, ensureCashTpl)
 	rsvpUC := rsvp.NewUseCase(guestRepo, invitationRepo)
 	invitationUC := invitation.NewUseCase(invitationRepo, guestRepo)
 	guestUC := guest.NewUseCase(guestRepo, invitationRepo)

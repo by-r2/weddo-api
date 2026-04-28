@@ -41,11 +41,11 @@ type RSVPRequest struct {
 // Invitations
 
 type CreateInvitationRequest struct {
-	Code      string               `json:"code" validate:"required,max=50"`
-	Label     string               `json:"label" validate:"required,max=100"`
-	MaxGuests int                  `json:"max_guests" validate:"required,min=1"`
-	Notes     string               `json:"notes"`
-	Guests    []CreateGuestInline  `json:"guests"`
+	Code      string              `json:"code" validate:"required,max=50"`
+	Label     string              `json:"label" validate:"required,max=100"`
+	MaxGuests int                 `json:"max_guests" validate:"required,min=1"`
+	Notes     string              `json:"notes"`
+	Guests    []CreateGuestInline `json:"guests"`
 }
 
 type CreateGuestInline struct {
@@ -93,28 +93,23 @@ type UpdateGiftRequest struct {
 	Status      string  `json:"status" validate:"omitempty,oneof=available purchased"`
 }
 
-// Payments
+// Payments — checkout público (carrinho no cliente).
 
-type PurchaseGiftRequest struct {
-	PayerName       string `json:"payer_name" validate:"required,max=100"`
-	PayerEmail      string `json:"payer_email" validate:"required,email"`
-	Message         string `json:"message"`
-	PaymentMethod   string `json:"payment_method" validate:"required,oneof=pix credit_card"`
-	CardToken       string `json:"card_token"`
-	PaymentMethodID string `json:"payment_method_id"`
-	Installments    int    `json:"installments"`
-	RedirectURL     string `json:"redirect_url"`
+type CheckoutItemRequest struct {
+	GiftID            string   `json:"gift_id" validate:"required,max=128"`
+	Amount            *float64 `json:"amount"` // obrigatório apenas para contribuição em dinheiro (gift cash_template)
+	CustomName        string   `json:"custom_name" validate:"max=200"`
+	CustomDescription string   `json:"custom_description"`
 }
 
-// PurchaseCashGiftRequest contribuição em dinheiro (valor livre, sem item em gifts).
-type PurchaseCashGiftRequest struct {
-	Amount          float64 `json:"amount" validate:"required,gt=0"`
-	PayerName       string  `json:"payer_name" validate:"required,max=100"`
-	PayerEmail      string  `json:"payer_email" validate:"required,email"`
-	Message         string  `json:"message"`
-	PaymentMethod   string  `json:"payment_method" validate:"required,oneof=pix credit_card"`
-	CardToken       string  `json:"card_token"`
-	PaymentMethodID string  `json:"payment_method_id"`
-	Installments    int     `json:"installments"`
-	RedirectURL     string  `json:"redirect_url"`
+type CheckoutRequest struct {
+	Items           []CheckoutItemRequest `json:"items" validate:"required,min=1,dive"`
+	PayerName       string                `json:"payer_name" validate:"required,max=100"`
+	PayerEmail      string                `json:"payer_email" validate:"required,email"`
+	Message         string                `json:"message"`
+	PaymentMethod   string                `json:"payment_method" validate:"required,oneof=pix credit_card"`
+	CardToken       string                `json:"card_token"`
+	PaymentMethodID string                `json:"payment_method_id"`
+	Installments    int                   `json:"installments"`
+	RedirectURL     string                `json:"redirect_url"`
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"log/slog"
 	"net/http"
@@ -74,7 +75,10 @@ func buildRouter(cfg *config.Config, db *sql.DB) http.Handler {
 	googleIntegrationRepo := database.NewGoogleIntegrationRepository(db)
 	userRepo := database.NewUserRepository(db)
 
-	weddingUC := wedding.NewUseCase(weddingRepo, userRepo, cfg.JWTSecret, cfg.JWTExpirationHours)
+	ensureCashTpl := func(ctx context.Context, weddingID string) error {
+		return giftuc.EnsureCashTemplate(ctx, giftRepo, weddingID)
+	}
+	weddingUC := wedding.NewUseCase(weddingRepo, userRepo, cfg.JWTSecret, cfg.JWTExpirationHours, ensureCashTpl)
 	rsvpUC := rsvp.NewUseCase(guestRepo, invitationRepo)
 	invitationUC := invitation.NewUseCase(invitationRepo, guestRepo)
 	guestUC := guest.NewUseCase(guestRepo, invitationRepo)

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/by-r2/weddo-api/internal/domain/entity"
 	"github.com/by-r2/weddo-api/internal/domain/repository"
+	"github.com/google/uuid"
 )
 
 type UseCase struct {
@@ -39,6 +39,7 @@ func (uc *UseCase) Create(ctx context.Context, input CreateInput) (*entity.Gift,
 		ImageURL:    input.ImageURL,
 		Category:    input.Category,
 		Status:      entity.GiftStatusAvailable,
+		Kind:        entity.GiftKindCatalog,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
@@ -53,8 +54,9 @@ func (uc *UseCase) FindByID(ctx context.Context, weddingID, id string) (*entity.
 	return uc.giftRepo.FindByID(ctx, weddingID, id)
 }
 
-func (uc *UseCase) List(ctx context.Context, weddingID string, page, perPage int, category, status, search string) ([]entity.Gift, int, error) {
-	return uc.giftRepo.List(ctx, weddingID, page, perPage, category, status, search)
+// List lista presentes de catálogo. Use catalogOnly para excluir gifts do tipo cash_template na UI admin/pública.
+func (uc *UseCase) List(ctx context.Context, weddingID string, page, perPage int, category, status, search string, catalogOnly bool) ([]entity.Gift, int, error) {
+	return uc.giftRepo.List(ctx, weddingID, page, perPage, category, status, search, catalogOnly)
 }
 
 type UpdateInput struct {

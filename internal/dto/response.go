@@ -113,13 +113,14 @@ type GiftResponse struct {
 	ImageURL    string  `json:"image_url,omitempty"`
 	Category    string  `json:"category"`
 	Status      string  `json:"status"`
+	Kind        string  `json:"kind,omitempty"` // catalog | cash_template — omitido no público quando vazio
 	CreatedAt   string  `json:"created_at"`
 	UpdatedAt   string  `json:"updated_at"`
 }
 
 // Payments
 
-type PurchaseResponse struct {
+type CheckoutResponse struct {
 	PaymentID    string  `json:"payment_id"`
 	ProviderID   string  `json:"provider_id"`
 	Status       string  `json:"status"`
@@ -129,26 +130,40 @@ type PurchaseResponse struct {
 	ExpiresAt    *string `json:"expires_at,omitempty"`
 }
 
+type PaymentLineResponse struct {
+	GiftID            string  `json:"gift_id"`
+	Kind              string  `json:"kind"`
+	Amount            float64 `json:"amount"`
+	CustomName        string  `json:"custom_name,omitempty"`
+	CustomDescription string  `json:"custom_description,omitempty"`
+	Label             string  `json:"label"`
+}
+
 type PaymentResponse struct {
-	ID            string  `json:"id"`
-	GiftID        string  `json:"gift_id"`
-	GiftKind      string  `json:"gift_kind,omitempty"` // "gift" | "cash"
-	GiftName      string  `json:"gift_name,omitempty"` // nome do item ou "Contribuição em dinheiro"
-	ProviderID    string  `json:"provider_id,omitempty"`
-	Amount        float64 `json:"amount"`
-	Status        string  `json:"status"`
-	PaymentMethod string  `json:"payment_method"`
-	PayerName     string  `json:"payer_name"`
-	PayerEmail    string  `json:"payer_email,omitempty"`
-	Message       string  `json:"message,omitempty"`
-	PaidAt        *string `json:"paid_at"`
-	CreatedAt     string  `json:"created_at"`
+	ID            string                `json:"id"`
+	ProviderID    string                `json:"provider_id,omitempty"`
+	Amount        float64               `json:"amount"`
+	Status        string                `json:"status"`
+	PaymentMethod string                `json:"payment_method"`
+	PayerName     string                `json:"payer_name"`
+	PayerEmail    string                `json:"payer_email,omitempty"`
+	Message       string                `json:"message,omitempty"`
+	Items         []PaymentLineResponse `json:"items"`
+	PaidAt        *string               `json:"paid_at"`
+	CreatedAt     string                `json:"created_at"`
+}
+
+type PaymentLineStatusDTO struct {
+	GiftID string  `json:"gift_id"`
+	Kind   string  `json:"kind"`
+	Amount float64 `json:"amount"`
+	Label  string  `json:"label"`
 }
 
 type PaymentStatusResponse struct {
-	PaymentID string `json:"payment_id"`
-	Status    string `json:"status"`
-	GiftName  string `json:"gift_name"`
+	PaymentID string                 `json:"payment_id"`
+	Status    string                 `json:"status"`
+	Lines     []PaymentLineStatusDTO `json:"lines"`
 }
 
 // Dashboard

@@ -129,7 +129,7 @@ GET /api/v1/w/{weddingId}/gifts?category=cozinha
 }
 ```
 
-A listagem pública mostra apenas presentes com status `available`. Filtros opcionais: `?category=Cozinha&search=panela&page=1&per_page=20`.
+A listagem pública mostra apenas presentes do **catálogo** com status `available`. O modelo interno **Contribuição em dinheiro** (`kind: cash_template`, id `cashttpl-<uuid do casamento>`) **não** entra nesta lista — aparece apenas no fluxo de checkout e nos pagamentos. Filtros opcionais: `?category=Cozinha&search=panela&page=1&per_page=20`.
 
 ### Detalhar Presente
 
@@ -137,16 +137,27 @@ A listagem pública mostra apenas presentes com status `available`. Filtros opci
 GET /api/v1/w/{weddingId}/gifts/{id}
 ```
 
-### Comprar Presente (iniciar pagamento)
+### Checkout — iniciar pagamento (lista de presentes no corpo)
+
+Carrinho apenas no cliente: o front envia **todos os itens** em um único pedido (`items[]`). Presentes do **catálogo** entram apenas com `gift_id` (valor vem da lista da loja). A **contribuição em dinheiro** usa o `gift_id` do modelo “Contribuição em dinheiro” (criado pelo sistema por casamento) e exige `amount`; opcionalmente `custom_name` e `custom_description`.
 
 ```
-POST /api/v1/w/{weddingId}/gifts/{id}/purchase
+POST /api/v1/w/{weddingId}/checkout
 ```
 
-**Request:**
+**Request (exemplo: um presente de catálogo + contribuição em dinheiro):**
 
 ```json
 {
+  "items": [
+    { "gift_id": "uuid-do-presente-catalogo" },
+    {
+      "gift_id": "cashttpl-<wedding_uuid>",
+      "amount": 150.50,
+      "custom_name": "Para a lua de mel",
+      "custom_description": "Com carinho ❤️"
+    }
+  ],
   "payer_name": "Tia Maria",
   "payer_email": "maria@email.com",
   "message": "Felicidades ao casal!",
@@ -154,6 +165,8 @@ POST /api/v1/w/{weddingId}/gifts/{id}/purchase
   "redirect_url": "https://manurafa.com.br/obrigado"
 }
 ```
+
+Para **apenas um presente da lista**, envie um único item em `items`. Não envie `amount` nem texto personalizado em itens do catálogo.
 
 > `redirect_url` é opcional — sobrescreve o `IP_REDIRECT_URL` global (apenas InfinitePay).
 > `card_token`, `payment_method_id` e `installments` são obrigatórios apenas para `credit_card` com Mercado Pago.
@@ -213,13 +226,16 @@ GET /api/v1/w/{weddingId}/payments/{id}/status
 {
   "payment_id": "uuid",
   "status": "approved",
-  "gift_name": "Jogo de Panelas"
+  "lines": [
+    { "gift_id": "uuid", "kind": "catalog", "amount": 350, "label": "Jogo de panelas" },
+    { "gift_id": "cashttpl-…", "kind": "cash_template", "amount": 150.5, "label": "Para a lua de mel" }
+  ]
 }
 ```
 
 ### Webhook de Pagamento
 
-Recebe notificações do provedor ativo. Não é chamado pelo frontend. O tenant é resolvido internamente via `payment → gift → wedding`.
+Recebe notificações do provedor ativo. Não é chamado pelo frontend. O tenant é resolvido internamente via pagamento persistido (`payment_items` + `payments`).
 
 ```
 POST /api/v1/payments/webhook
@@ -347,6 +363,8 @@ POST   /api/v1/admin/invitations/{id}/guests  # adicionar a convite existente
 ```
 
 ### Presentes (Gifts)
+
+Lista e CRUD apenas para **`kind = catalog`** (o modelo de contribuição em dinheiro não aparece nem pode ser alterado por aqui).
 
 ```
 GET    /api/v1/admin/gifts                # listar (?page=1&per_page=20&category=Cozinha&status=available&search=panela)

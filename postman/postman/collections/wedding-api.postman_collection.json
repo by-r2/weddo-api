@@ -3,7 +3,7 @@
     "_postman_id": "238cc5c5-2eae-46e5-bef9-419d4fa38406",
     "name": "wedding-api",
     "description": "API multi-tenant para sites de casamento.\n\n## Setup\n\n1. Importe esta collection\n2. Importe o environment `local.postman_environment.json`\n3. Rode o servidor: `make run`\n4. Execute **admin > login** para popular `token` e `weddingId` automaticamente\n5. Pronto — todas as requests usarão as variáveis automaticamente\n\n## Variáveis\n\n| Variável | Preenchida por | Uso |\n|----------|---------------|-----|\n| `baseUrl` | Environment | Base URL do servidor |\n| `token` | login (auto) | Bearer token JWT |\n| `weddingId` | login (auto) | UUID do tenant para endpoints públicos |\n| `invitationId` | create-invitation (auto) | ID do último convite criado |
-| `invitationCode` | create-invitation (auto) | Código do último convite (RSVP público) |\n| `guestId` | list-guests (auto) | ID do primeiro convidado na lista |\n| `giftId` | create-gift (auto) | ID do último presente criado |\n| `paymentId` | purchase-pix (auto) | ID do último pagamento criado |",
+| `invitationCode` | create-invitation (auto) | Código do último convite (RSVP público) |\n| `guestId` | list-guests (auto) | ID do primeiro convidado na lista |\n| `giftId` | create-gift (auto) | ID do último presente criado |\n| `paymentId` | checkout-pix (auto) | ID do último pagamento criado |",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -1149,7 +1149,7 @@
               "response": []
             },
             {
-              "name": "purchase-pix",
+              "name": "checkout-pix",
               "event": [
                 {
                   "listen": "test",
@@ -1185,19 +1185,17 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"payer_name\": \"Tia Maria\",\n  \"payer_email\": \"maria@email.com\",\n  \"message\": \"Felicidades ao casal!\",\n  \"payment_method\": \"pix\",\n  \"redirect_url\": \"https://manurafa.com.br/obrigado\"\n}"
+                  "raw": "{\n  \"items\": [\n    { \"gift_id\": \"{{giftId}}\" }\n  ],\n  \"payer_name\": \"Tia Maria\",\n  \"payer_email\": \"maria@email.com\",\n  \"message\": \"Felicidades ao casal!\",\n  \"payment_method\": \"pix\",\n  \"redirect_url\": \"https://manurafa.com.br/obrigado\"\n}"
                 },
                 "url": {
-                  "raw": "{{baseUrl}}/w/{{weddingId}}/gifts/{{giftId}}/purchase",
+                  "raw": "{{baseUrl}}/w/{{weddingId}}/checkout",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "w",
                     "{{weddingId}}",
-                    "gifts",
-                    "{{giftId}}",
-                    "purchase"
+                    "checkout"
                   ]
                 },
                 "description": "Inicia pagamento via PIX.\n\n- **InfinitePay**: retorna `checkout_url` (redirecionar o usuário)\n- **Mercado Pago**: retorna `qr_code` e `qr_code_base64` (exibir inline)\n\nO campo `redirect_url` é opcional (sobrescreve `IP_REDIRECT_URL` global, apenas InfinitePay).\n\nRequer `PAYMENT_PROVIDER` configurado no servidor."
@@ -1205,7 +1203,7 @@
               "response": []
             },
             {
-              "name": "purchase-card",
+              "name": "checkout-card",
               "event": [
                 {
                   "listen": "test",
@@ -1237,19 +1235,17 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"payer_name\": \"Tia Maria\",\n  \"payer_email\": \"maria@email.com\",\n  \"message\": \"Felicidades ao casal!\",\n  \"payment_method\": \"credit_card\",\n  \"card_token\": \"TOKEN_DO_MERCADOPAGO_JS\",\n  \"payment_method_id\": \"visa\",\n  \"installments\": 1\n}"
+                  "raw": "{\n  \"items\": [\n    { \"gift_id\": \"{{giftId}}\" }\n  ],\n  \"payer_name\": \"Tia Maria\",\n  \"payer_email\": \"maria@email.com\",\n  \"message\": \"Felicidades ao casal!\",\n  \"payment_method\": \"credit_card\",\n  \"card_token\": \"TOKEN_DO_MERCADOPAGO_JS\",\n  \"payment_method_id\": \"visa\",\n  \"installments\": 1\n}"
                 },
                 "url": {
-                  "raw": "{{baseUrl}}/w/{{weddingId}}/gifts/{{giftId}}/purchase",
+                  "raw": "{{baseUrl}}/w/{{weddingId}}/checkout",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "w",
                     "{{weddingId}}",
-                    "gifts",
-                    "{{giftId}}",
-                    "purchase"
+                    "checkout"
                   ]
                 },
                 "description": "Inicia pagamento via cartão de crédito.\n\n- **Mercado Pago**: `card_token` é gerado pelo MercadoPago.js no frontend. Em sandbox, use tokens de teste.\n- **InfinitePay**: `card_token` e `payment_method_id` são ignorados — o checkout de cartão acontece no redirect.\n\nRequer `PAYMENT_PROVIDER` configurado no servidor."

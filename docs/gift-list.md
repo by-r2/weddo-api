@@ -6,13 +6,14 @@ A lista de presentes de casamento funciona como um catálogo de **presentes virt
 
 ### Fluxo do Convidado
 
+O carrinho existe **só no cliente**: o frontend monta uma ou mais linhas (`items[]`) e envia **`POST /api/v1/w/{weddingId}/checkout`** uma vez por pedido — pode incluir vários presentes de catálogo e/ou contribuição em dinheiro (ver [`api.md`](api.md)).
+
 ```
-Acessa a lista → Escolhe presente → Clica "Presentear"
-  → Informa nome e mensagem (opcional)
-  → É direcionado ao checkout do provedor (InfinitePay ou Mercado Pago)
-  → Paga (PIX ou cartão)
-  → Webhook confirma pagamento → presente marcado como "comprado"
-  → Convidado vê tela de agradecimento
+Monta carrinho (catálogo e/ou contribuição) → POST /checkout
+  → Backend cria cobrança no provedor (InfinitePay ou Mercado Pago)
+  → InfinitePay: redireciona; Mercado Pago PIX: QR inline; MP cartão: aprovação imediata quando aplicável
+  → Webhook confirma pagamento → presentes de catálogo marcados como "comprado" conforme linhas aprovadas
+  → Convidado vê tela de agradecimento ou acompanha status do pagamento
 ```
 
 ### Fluxo do Admin (noivos)
@@ -71,9 +72,8 @@ Checkout transparente — tudo acontece sem sair do site. QR Code PIX inline e t
 ```
 Frontend                     Backend                      InfinitePay
    │                            │                              │
-   │  POST /gifts/:id/purchase  │                              │
-   │  { name, email, message,   │                              │
-   │    payment_method: "pix" }  │                              │
+   │  POST .../checkout         │                              │
+   │  { items[], payer_*, ... } │                              │
    │───────────────────────────>│                              │
    │                            │  POST /checkout/links        │
    │                            │  { handle, items, webhook }  │
@@ -91,7 +91,8 @@ Frontend                     Backend                      InfinitePay
    │                            │  { order_nsu, paid_amount }  │
    │                            │<─────────────────────────────│
    │                            │                              │
-   │                            │  [Marca gift como purchased] │
+   │                            │  [Atualiza pagamento + linhas;
+   │                            │   marca gifts catalog comprados]
 ```
 
 ## Fluxo Técnico — Mercado Pago (PIX)
@@ -99,9 +100,9 @@ Frontend                     Backend                      InfinitePay
 ```
 Frontend                     Backend                      Mercado Pago
    │                            │                              │
-   │  POST /gifts/:id/purchase  │                              │
-   │  { name, email, message,   │                              │
-   │    payment_method: "pix" }  │                              │
+   │  POST .../checkout          │                              │
+   │  { items[], payment_method │
+   │    "pix", ... }             │                              │
    │───────────────────────────>│                              │
    │                            │  POST /v1/payments           │
    │                            │  { amount, payer, pix... }   │
@@ -120,7 +121,8 @@ Frontend                     Backend                      Mercado Pago
    │                            │  { action: payment.updated } │
    │                            │<─────────────────────────────│
    │                            │                              │
-   │                            │  [Marca gift como purchased] │
+   │                            │  [Atualiza linhas; marca gifts
+   │                            │    catalog conforme webhook] │
 ```
 
 ## Fluxo Técnico — Mercado Pago (Cartão)
@@ -135,8 +137,8 @@ Frontend (SDK JS do MP)      Backend                      Mercado Pago
    │  { card_token }            │                              │
    │<──────────────────────────────────────────────────────────│
    │                            │                              │
-   │  POST /gifts/:id/purchase  │                              │
-   │  { card_token, ... }       │                              │
+   │  POST .../checkout           │                              │
+   │  { items[], card_token }   │                              │
    │───────────────────────────>│                              │
    │                            │  POST /v1/payments           │
    │                            │─────────────────────────────>│
@@ -149,7 +151,7 @@ Frontend (SDK JS do MP)      Backend                      Mercado Pago
 
 ## Comportamento do Frontend
 
-O frontend deve verificar a resposta do `POST /purchase`:
+O frontend deve verificar a resposta do `POST /api/v1/w/{weddingId}/checkout`:
 
 - Se `checkout_url` está presente → **redirecionar** o usuário para essa URL (InfinitePay)
 - Se `qr_code` está presente → **exibir** o QR code inline (Mercado Pago PIX)

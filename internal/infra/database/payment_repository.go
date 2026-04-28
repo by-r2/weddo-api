@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/by-r2/weddo-api/internal/domain/entity"
 	"github.com/by-r2/weddo-api/internal/domain/repository"
@@ -17,31 +18,57 @@ func NewPaymentRepository(db *sql.DB) repository.PaymentRepository {
 	return &paymentRepository{db: db}
 }
 
-func (r *paymentRepository) Create(ctx context.Context, p *entity.Payment) error {
-	query := `
-		INSERT INTO payments (id, gift_id, wedding_id, provider_id, amount, status, payment_method,
-			payer_name, payer_email, message, pix_qr_code, pix_expiration, paid_at, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`
-
-	var giftID any
-	if p.GiftID != "" {
-		giftID = p.GiftID
+func (r *paymentRepository) CreateWithItems(ctx context.Context, p *entity.Payment, items []entity.PaymentItem) error {
+	if len(items) == 0 {
+		return fmt.Errorf("paymentRepository.CreateWithItems: no items")
 	}
 
-	_, err := r.db.ExecContext(ctx, query,
-		p.ID, giftID, p.WeddingID, p.ProviderID, p.Amount, p.Status, p.PaymentMethod,
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("paymentRepository.CreateWithItems: begin: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	qpay := `
+		INSERT INTO payments (id, wedding_id, provider_id, amount, status, payment_method,
+			payer_name, payer_email, message, pix_qr_code, pix_expiration, paid_at, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
+
+	if _, err := tx.ExecContext(ctx, qpay,
+		p.ID, p.WeddingID, p.ProviderID, p.Amount, p.Status, p.PaymentMethod,
 		p.PayerName, p.PayerEmail, p.Message, p.PixQRCode, p.PixExpiration,
 		p.PaidAt, p.CreatedAt, p.UpdatedAt,
-	)
-	if err != nil {
-		return fmt.Errorf("paymentRepository.Create: %w", err)
+	); err != nil {
+		return fmt.Errorf("paymentRepository.CreateWithItems: insert payment: %w", err)
+	}
+
+	qitem := `
+		INSERT INTO payment_items (id, payment_id, gift_id, amount, custom_name, custom_description, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`
+	for _, it := range items {
+		var cn, cd any
+		if strings.TrimSpace(it.CustomName) != "" {
+			cn = strings.TrimSpace(it.CustomName)
+		}
+		if strings.TrimSpace(it.CustomDescription) != "" {
+			cd = strings.TrimSpace(it.CustomDescription)
+		}
+		if _, err := tx.ExecContext(ctx, qitem,
+			it.ID, it.PaymentID, it.GiftID, it.Amount, cn, cd, it.CreatedAt,
+		); err != nil {
+			return fmt.Errorf("paymentRepository.CreateWithItems: insert item: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("paymentRepository.CreateWithItems: commit: %w", err)
 	}
 	return nil
 }
 
 func (r *paymentRepository) FindByID(ctx context.Context, weddingID, id string) (*entity.Payment, error) {
 	query := `
-		SELECT id, gift_id, wedding_id, provider_id, amount, status, payment_method,
+		SELECT id, wedding_id, provider_id, amount, status, payment_method,
 			payer_name, payer_email, message, pix_qr_code, pix_expiration, paid_at, created_at, updated_at
 		FROM payments WHERE wedding_id = $1 AND id = $2`
 
@@ -50,7 +77,7 @@ func (r *paymentRepository) FindByID(ctx context.Context, weddingID, id string) 
 
 func (r *paymentRepository) FindByIDAny(ctx context.Context, id string) (*entity.Payment, error) {
 	query := `
-		SELECT id, gift_id, wedding_id, provider_id, amount, status, payment_method,
+		SELECT id, wedding_id, provider_id, amount, status, payment_method,
 			payer_name, payer_email, message, pix_qr_code, pix_expiration, paid_at, created_at, updated_at
 		FROM payments WHERE id = $1`
 
@@ -59,17 +86,50 @@ func (r *paymentRepository) FindByIDAny(ctx context.Context, id string) (*entity
 
 func (r *paymentRepository) FindByProviderID(ctx context.Context, providerID string) (*entity.Payment, error) {
 	query := `
-		SELECT id, gift_id, wedding_id, provider_id, amount, status, payment_method,
+		SELECT id, wedding_id, provider_id, amount, status, payment_method,
 			payer_name, payer_email, message, pix_qr_code, pix_expiration, paid_at, created_at, updated_at
 		FROM payments WHERE provider_id = $1`
 
 	return r.scanPayment(r.db.QueryRowContext(ctx, query, providerID))
 }
 
+func (r *paymentRepository) FindItemsByPaymentID(ctx context.Context, weddingID, paymentID string) ([]entity.PaymentItem, error) {
+	query := `
+		SELECT pi.id, pi.payment_id, pi.gift_id, pi.amount,
+			COALESCE(pi.custom_name,''), COALESCE(pi.custom_description,''), pi.created_at
+		FROM payment_items pi
+		INNER JOIN payments p ON p.id = pi.payment_id
+		WHERE p.wedding_id = $1 AND p.id = $2
+		ORDER BY pi.created_at`
+
+	rows, err := r.db.QueryContext(ctx, query, weddingID, paymentID)
+	if err != nil {
+		return nil, fmt.Errorf("paymentRepository.FindItemsByPaymentID: %w", err)
+	}
+	defer rows.Close()
+
+	var out []entity.PaymentItem
+	for rows.Next() {
+		var it entity.PaymentItem
+		var cn, cd sql.NullString
+		if err := rows.Scan(&it.ID, &it.PaymentID, &it.GiftID, &it.Amount, &cn, &cd, &it.CreatedAt); err != nil {
+			return nil, fmt.Errorf("paymentRepository.FindItemsByPaymentID: scan: %w", err)
+		}
+		if cn.Valid {
+			it.CustomName = cn.String
+		}
+		if cd.Valid {
+			it.CustomDescription = cd.String
+		}
+		out = append(out, it)
+	}
+	return out, rows.Err()
+}
+
 func (r *paymentRepository) List(ctx context.Context, weddingID string, page, perPage int, status, giftID string) ([]entity.Payment, int, error) {
 	countQuery := `SELECT COUNT(*) FROM payments WHERE wedding_id = $1`
 	listQuery := `
-		SELECT id, gift_id, wedding_id, provider_id, amount, status, payment_method,
+		SELECT id, wedding_id, provider_id, amount, status, payment_method,
 			payer_name, payer_email, message, pix_qr_code, pix_expiration, paid_at, created_at, updated_at
 		FROM payments WHERE wedding_id = $1`
 
@@ -84,12 +144,19 @@ func (r *paymentRepository) List(ctx context.Context, weddingID string, page, pe
 		paramIdx++
 	}
 	if giftID == "cash" {
-		countQuery += ` AND gift_id IS NULL`
-		listQuery += ` AND gift_id IS NULL`
+		existsCash := `
+			AND EXISTS (
+				SELECT 1 FROM payment_items pi
+				INNER JOIN gifts g ON g.id = pi.gift_id AND g.kind = 'cash_template'
+				WHERE pi.payment_id = payments.id
+			)`
+		countQuery += existsCash
+		listQuery += existsCash
 	} else if giftID != "" {
-		f := fmt.Sprintf(` AND gift_id = $%d`, paramIdx)
-		countQuery += f
-		listQuery += f
+		existsGift := fmt.Sprintf(`
+			AND EXISTS (SELECT 1 FROM payment_items pi WHERE pi.payment_id = payments.id AND pi.gift_id = $%d)`, paramIdx)
+		countQuery += existsGift
+		listQuery += existsGift
 		args = append(args, giftID)
 		paramIdx++
 	}
@@ -168,14 +235,10 @@ func scanPaymentFromRows(rows *sql.Rows) (entity.Payment, error) {
 
 func scanPaymentFields(scan func(dest ...any) error) (entity.Payment, error) {
 	var p entity.Payment
-	var giftID sql.NullString
 	err := scan(
-		&p.ID, &giftID, &p.WeddingID, &p.ProviderID, &p.Amount, &p.Status, &p.PaymentMethod,
+		&p.ID, &p.WeddingID, &p.ProviderID, &p.Amount, &p.Status, &p.PaymentMethod,
 		&p.PayerName, &p.PayerEmail, &p.Message, &p.PixQRCode, &p.PixExpiration,
 		&p.PaidAt, &p.CreatedAt, &p.UpdatedAt,
 	)
-	if giftID.Valid {
-		p.GiftID = giftID.String
-	}
 	return p, err
 }

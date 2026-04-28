@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/by-r2/weddo-api/internal/domain/entity"
 	gw "github.com/by-r2/weddo-api/internal/domain/gateway"
 	"github.com/by-r2/weddo-api/internal/domain/repository"
+	"github.com/google/uuid"
 )
 
 var ErrNotConfigured = errors.New("google sheets não configurado")
@@ -100,7 +100,7 @@ func (uc *UseCase) Push(ctx context.Context, weddingID string) (*SyncResult, err
 	if err != nil {
 		return nil, err
 	}
-	gifts, err := uc.listAllGifts(ctx, weddingID)
+	giftsCatalog, err := uc.listAllGifts(ctx, weddingID)
 	if err != nil {
 		return nil, err
 	}
@@ -116,9 +116,15 @@ func (uc *UseCase) Push(ctx context.Context, weddingID string) (*SyncResult, err
 		invCodeByID[inv.ID] = inv.Code
 	}
 
-	giftByID := make(map[string]entity.Gift, len(gifts))
-	for _, g := range gifts {
+	giftByID := make(map[string]entity.Gift, len(giftsCatalog)+1)
+	for _, g := range giftsCatalog {
 		giftByID[g.ID] = g
+	}
+	// Linhas de contribuição em dinheiro referenciam cash_template; não faz parte da lista de presentes.
+	if tpl, err := uc.giftRepo.FindCashTemplateByWeddingID(ctx, weddingID); err == nil {
+		giftByID[tpl.ID] = *tpl
+	} else if !errors.Is(err, entity.ErrNotFound) {
+		return nil, fmt.Errorf("sheets.Push FindCashTemplate: %w", err)
 	}
 
 	tabGuests, tabInvitations, tabGifts, tabPayments := defaultTabs()
@@ -129,17 +135,21 @@ func (uc *UseCase) Push(ctx context.Context, weddingID string) (*SyncResult, err
 	if err := client.WriteTab(ctx, tabGuests, guestsToSheet(guests, invCodeByID)); err != nil {
 		return nil, err
 	}
-	if err := client.WriteTab(ctx, tabGifts, giftsToSheet(gifts)); err != nil {
+	if err := client.WriteTab(ctx, tabGifts, giftsToSheet(giftsCatalog)); err != nil {
 		return nil, err
 	}
-	if err := client.WriteTab(ctx, tabPayments, paymentsToSheet(payments, giftByID)); err != nil {
+	payRows, err := uc.paymentLinesToSheet(ctx, weddingID, payments, giftByID)
+	if err != nil {
+		return nil, err
+	}
+	if err := client.WriteTab(ctx, tabPayments, payRows); err != nil {
 		return nil, err
 	}
 
 	return &SyncResult{
 		Invitations: len(invitations),
 		Guests:      len(guests),
-		Gifts:       len(gifts),
+		Gifts:       len(giftsCatalog),
 		Payments:    len(payments),
 	}, nil
 }
@@ -416,34 +426,47 @@ func giftsToSheet(items []entity.Gift) [][]any {
 	return rows
 }
 
-func paymentsToSheet(items []entity.Payment, giftByID map[string]entity.Gift) [][]any {
+func (uc *UseCase) paymentLinesToSheet(ctx context.Context, weddingID string, payments []entity.Payment, giftByID map[string]entity.Gift) ([][]any, error) {
 	rows := [][]any{
-		{"ID", "Presente", "Quem presenteou", "Valor", "Método", "Status", "Pago em"},
+		{"Pagamento ID", "Presente linha", "Valor linha", "Total pagamento", "Quem presenteou", "E-mail", "Método", "Status pagamento", "Pago em"},
 	}
-	for _, p := range items {
+	for _, p := range payments {
+		items, err := uc.payRepo.FindItemsByPaymentID(ctx, weddingID, p.ID)
+		if err != nil {
+			return nil, fmt.Errorf("sheets.paymentLinesToSheet: %w", err)
+		}
 		paidAt := ""
 		if p.PaidAt != nil {
 			paidAt = p.PaidAt.Format(time.RFC3339)
 		}
-		giftLabel := entity.PaymentCashGiftLabel
-		if p.GiftID != "" {
-			if g, ok := giftByID[p.GiftID]; ok {
-				giftLabel = g.Name
-			} else {
-				giftLabel = "(presente removido)"
+		for _, ln := range items {
+			lbl := "(presente removido)"
+			if g, ok := giftByID[ln.GiftID]; ok {
+				switch g.Kind {
+				case entity.GiftKindCashTemplate:
+					if cn := strings.TrimSpace(ln.CustomName); cn != "" {
+						lbl = cn
+					} else {
+						lbl = entity.PaymentCashGiftLabel
+					}
+				default:
+					lbl = g.Name
+				}
 			}
+			rows = append(rows, []any{
+				p.ID,
+				lbl,
+				ln.Amount,
+				p.Amount,
+				p.PayerName,
+				p.PayerEmail,
+				string(p.PaymentMethod),
+				string(p.Status),
+				paidAt,
+			})
 		}
-		rows = append(rows, []any{
-			p.ID,
-			giftLabel,
-			p.PayerName,
-			p.Amount,
-			string(p.PaymentMethod),
-			string(p.Status),
-			paidAt,
-		})
 	}
-	return rows
+	return rows, nil
 }
 
 func (uc *UseCase) listAllInvitations(ctx context.Context, weddingID string) ([]entity.Invitation, error) {
@@ -480,11 +503,12 @@ func (uc *UseCase) listAllGuests(ctx context.Context, weddingID string) ([]entit
 	return out, nil
 }
 
+// listAllGifts retorna apenas presentes de catálogo (cash_template não entra na aba nem na lista administrativa/exportada).
 func (uc *UseCase) listAllGifts(ctx context.Context, weddingID string) ([]entity.Gift, error) {
 	var out []entity.Gift
 	page, perPage := 1, 100
 	for {
-		items, total, err := uc.giftRepo.List(ctx, weddingID, page, perPage, "", "", "")
+		items, total, err := uc.giftRepo.List(ctx, weddingID, page, perPage, "", "", "", true)
 		if err != nil {
 			return nil, fmt.Errorf("sheets.listAllGifts: %w", err)
 		}

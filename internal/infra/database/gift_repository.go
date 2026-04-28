@@ -19,12 +19,17 @@ func NewGiftRepository(db *sql.DB) repository.GiftRepository {
 
 func (r *giftRepository) Create(ctx context.Context, g *entity.Gift) error {
 	query := `
-		INSERT INTO gifts (id, wedding_id, name, description, price, image_url, category, status, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+		INSERT INTO gifts (id, wedding_id, name, description, price, image_url, category, status, kind, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
+
+	kind := g.Kind
+	if kind == "" {
+		kind = entity.GiftKindCatalog
+	}
 
 	_, err := r.db.ExecContext(ctx, query,
 		g.ID, g.WeddingID, g.Name, g.Description, g.Price, g.ImageURL,
-		g.Category, g.Status, g.CreatedAt, g.UpdatedAt,
+		g.Category, g.Status, kind, g.CreatedAt, g.UpdatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("giftRepository.Create: %w", err)
@@ -34,13 +39,14 @@ func (r *giftRepository) Create(ctx context.Context, g *entity.Gift) error {
 
 func (r *giftRepository) FindByID(ctx context.Context, weddingID, id string) (*entity.Gift, error) {
 	query := `
-		SELECT id, wedding_id, name, description, price, image_url, category, status, created_at, updated_at
+		SELECT id, wedding_id, name, description, price, image_url, category, status, kind, created_at, updated_at
 		FROM gifts WHERE wedding_id = $1 AND id = $2`
 
 	var g entity.Gift
+	var kind sql.NullString
 	err := r.db.QueryRowContext(ctx, query, weddingID, id).Scan(
 		&g.ID, &g.WeddingID, &g.Name, &g.Description, &g.Price, &g.ImageURL,
-		&g.Category, &g.Status, &g.CreatedAt, &g.UpdatedAt,
+		&g.Category, &g.Status, &kind, &g.CreatedAt, &g.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, entity.ErrNotFound
@@ -48,18 +54,52 @@ func (r *giftRepository) FindByID(ctx context.Context, weddingID, id string) (*e
 	if err != nil {
 		return nil, fmt.Errorf("giftRepository.FindByID: %w", err)
 	}
+	if kind.Valid {
+		g.Kind = entity.GiftKind(kind.String)
+	} else {
+		g.Kind = entity.GiftKindCatalog
+	}
 	return &g, nil
 }
 
-func (r *giftRepository) List(ctx context.Context, weddingID string, page, perPage int, category, status, search string) ([]entity.Gift, int, error) {
+func (r *giftRepository) FindCashTemplateByWeddingID(ctx context.Context, weddingID string) (*entity.Gift, error) {
+	query := `
+		SELECT id, wedding_id, name, description, price, image_url, category, status, kind, created_at, updated_at
+		FROM gifts WHERE wedding_id = $1 AND kind = 'cash_template' LIMIT 1`
+	var g entity.Gift
+	var kind sql.NullString
+	err := r.db.QueryRowContext(ctx, query, weddingID).Scan(
+		&g.ID, &g.WeddingID, &g.Name, &g.Description, &g.Price, &g.ImageURL,
+		&g.Category, &g.Status, &kind, &g.CreatedAt, &g.UpdatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, entity.ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("giftRepository.FindCashTemplateByWeddingID: %w", err)
+	}
+	if kind.Valid {
+		g.Kind = entity.GiftKind(kind.String)
+	}
+	return &g, nil
+}
+
+func (r *giftRepository) List(ctx context.Context, weddingID string, page, perPage int, category, status, search string, catalogOnly bool) ([]entity.Gift, int, error) {
 	countQuery := `SELECT COUNT(*) FROM gifts WHERE wedding_id = $1`
 	listQuery := `
-		SELECT id, wedding_id, name, description, price, image_url, category, status, created_at, updated_at
+		SELECT id, wedding_id, name, description, price, image_url, category, status, kind, created_at, updated_at
 		FROM gifts WHERE wedding_id = $1`
 
 	args := []any{weddingID}
 	paramIdx := 2
 
+	if catalogOnly {
+		f := fmt.Sprintf(` AND kind = $%d`, paramIdx)
+		countQuery += f
+		listQuery += f
+		args = append(args, entity.GiftKindCatalog)
+		paramIdx++
+	}
 	if category != "" {
 		f := fmt.Sprintf(` AND category = $%d`, paramIdx)
 		countQuery += f
@@ -100,11 +140,17 @@ func (r *giftRepository) List(ctx context.Context, weddingID string, page, perPa
 	var gifts []entity.Gift
 	for rows.Next() {
 		var g entity.Gift
+		var kind sql.NullString
 		if err := rows.Scan(
 			&g.ID, &g.WeddingID, &g.Name, &g.Description, &g.Price, &g.ImageURL,
-			&g.Category, &g.Status, &g.CreatedAt, &g.UpdatedAt,
+			&g.Category, &g.Status, &kind, &g.CreatedAt, &g.UpdatedAt,
 		); err != nil {
 			return nil, 0, fmt.Errorf("giftRepository.List: scan: %w", err)
+		}
+		if kind.Valid {
+			g.Kind = entity.GiftKind(kind.String)
+		} else {
+			g.Kind = entity.GiftKindCatalog
 		}
 		gifts = append(gifts, g)
 	}
@@ -146,9 +192,9 @@ func (r *giftRepository) CountByWedding(ctx context.Context, weddingID string) (
 			COUNT(*),
 			COUNT(CASE WHEN status = 'available' THEN 1 END),
 			COUNT(CASE WHEN status = 'purchased' THEN 1 END)
-		FROM gifts WHERE wedding_id = $1`
+		FROM gifts WHERE wedding_id = $1 AND kind = $2`
 
-	err = r.db.QueryRowContext(ctx, query, weddingID).Scan(&total, &available, &purchased)
+	err = r.db.QueryRowContext(ctx, query, weddingID, entity.GiftKindCatalog).Scan(&total, &available, &purchased)
 	if err != nil {
 		err = fmt.Errorf("giftRepository.CountByWedding: %w", err)
 	}

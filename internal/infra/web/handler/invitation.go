@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/by-r2/weddo-api/internal/domain/entity"
 	"github.com/by-r2/weddo-api/internal/dto"
 	"github.com/by-r2/weddo-api/internal/infra/web/middleware"
 	"github.com/by-r2/weddo-api/internal/usecase/invitation"
+	"github.com/go-chi/chi/v5"
 )
 
 type InvitationHandler struct {

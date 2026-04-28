@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/by-r2/weddo-api/internal/domain/entity"
 	"github.com/by-r2/weddo-api/internal/domain/repository"
+	"github.com/google/uuid"
 )
 
 func DevData(
@@ -205,6 +205,7 @@ func seedGifts(ctx context.Context, weddingID string, giftRepo repository.GiftRe
 			ImageURL:    g.imageURL,
 			Category:    g.category,
 			Status:      entity.GiftStatusAvailable,
+			Kind:        entity.GiftKindCatalog,
 			CreatedAt:   now,
 			UpdatedAt:   now,
 		}
