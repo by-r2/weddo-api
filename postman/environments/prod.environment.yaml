@@ -18,4 +18,7 @@ values:
   - key: invitationCode
     enabled: true
     value: ''
+  - key: giftId
+    enabled: true
+    value: ''
 color: 0

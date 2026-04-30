@@ -54,9 +54,9 @@ func (uc *UseCase) FindByID(ctx context.Context, weddingID, id string) (*entity.
 	return uc.giftRepo.FindByID(ctx, weddingID, id)
 }
 
-// List lista presentes de catálogo. Use catalogOnly para excluir gifts do tipo cash_template na UI admin/pública.
-func (uc *UseCase) List(ctx context.Context, weddingID string, page, perPage int, category, status, search string, catalogOnly bool) ([]entity.Gift, int, error) {
-	return uc.giftRepo.List(ctx, weddingID, page, perPage, category, status, search, catalogOnly)
+// List lista presentes de catálogo. Use p.CatalogOnly para excluir gifts do tipo cash_template na UI admin/pública.
+func (uc *UseCase) List(ctx context.Context, weddingID string, p repository.GiftListParams) ([]entity.Gift, int, error) {
+	return uc.giftRepo.List(ctx, weddingID, p)
 }
 
 // ListCategories retorna labels distintas já usadas em presentes de catálogo (para filtros/select no front).

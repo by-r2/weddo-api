@@ -1,6 +1,6 @@
 $kind: http-request
-description: Lista todos os presentes (incluindo purchased). Para admin.
-url: "{{baseUrl}}/admin/gifts?page=1&per_page=20&category=&status=&search="
+description: Lista todos os presentes (incluindo purchased). category pode repetir para múltiplas categorias.
+url: "{{baseUrl}}/admin/gifts?page=1&per_page=20&status=&search=&min_price=&max_price=&sort_by=recommended&sort_dir=asc"
 method: GET
 queryParams:
   - key: page
@@ -9,13 +9,25 @@ queryParams:
     value: "20"
   - key: category
     value: ""
-    description: Filtrar por categoria
+    description: Filtrar por categoria (repita para várias)
   - key: status
     value: ""
     description: available ou purchased
   - key: search
     value: ""
     description: Busca por nome
+  - key: min_price
+    value: ""
+    description: Preço mínimo
+  - key: max_price
+    value: ""
+    description: Preço máximo
+  - key: sort_by
+    value: recommended
+    description: recommended | price | name
+  - key: sort_dir
+    value: asc
+    description: asc | desc
 scripts:
   - type: afterResponse
     code: pm.test('Status 200', () => pm.response.to.have.status(200));

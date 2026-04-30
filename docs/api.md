@@ -132,8 +132,19 @@ O endpoint **admin** usa o `wedding_id` do JWT (sem path extra).
 ### Listar Presentes
 
 ```
-GET /api/v1/w/{weddingId}/gifts?category=cozinha
+GET /api/v1/w/{weddingId}/gifts?page=1&per_page=20&category=Cozinha&category=Quarto&search=panela&min_price=0&max_price=500&sort_by=recommended&sort_dir=asc
 ```
+
+**Query params opcionais**
+
+| Parâmetro | Descrição |
+|-----------|-----------|
+| `page`, `per_page` | Paginação (`per_page` máximo 100 no servidor). |
+| `category` | Repita o parâmetro para várias categorias: `?category=A&category=B`. Match exato ao valor salvo no presente. |
+| `search` | Busca por nome (`ILIKE`). |
+| `min_price`, `max_price` | Faixa de preço (números ≥ 0; `min_price` não pode ser maior que `max_price`). |
+| `sort_by` | `recommended` (padrão: `category` ASC, `name` ASC), `price` ou `name`. |
+| `sort_dir` | `asc` ou `desc` (padrão `asc`). Ignorado quando `sort_by=recommended`. |
 
 **Response 200:**
 
@@ -156,7 +167,7 @@ GET /api/v1/w/{weddingId}/gifts?category=cozinha
 }
 ```
 
-A listagem pública mostra apenas presentes do **catálogo** com status `available`. O modelo interno **Contribuição em dinheiro** (`kind: cash_template`, id `cashttpl-<uuid do casamento>`) **não** entra nesta lista — aparece apenas no fluxo de checkout e nos pagamentos. Filtros opcionais: `?category=Cozinha&search=panela&page=1&per_page=20`.
+A listagem pública mostra apenas presentes do **catálogo** com status `available`. O modelo interno **Contribuição em dinheiro** (`kind: cash_template`, id `cashttpl-<uuid do casamento>`) **não** entra nesta lista — aparece apenas no fluxo de checkout e nos pagamentos. Filtros opcionais: ver tabela acima (`category` repetido, `search`, `min_price`, `max_price`, `sort_by`, `sort_dir`, paginação).
 
 ### Detalhar Presente
 
@@ -428,7 +439,7 @@ POST   /api/v1/admin/invitations/{id}/guests  # adicionar a convite existente
 Lista e CRUD apenas para **`kind = catalog`** (o modelo de contribuição em dinheiro não aparece nem pode ser alterado por aqui).
 
 ```
-GET    /api/v1/admin/gifts                # listar (?page=1&per_page=20&category=Cozinha&status=available&search=panela)
+GET    /api/v1/admin/gifts                # listar (?page=&per_page=&category=&status=&search=&min_price=&max_price=&sort_by=&sort_dir=)
 POST   /api/v1/admin/gifts                # criar
 GET    /api/v1/admin/gifts/{id}           # detalhar
 PUT    /api/v1/admin/gifts/{id}           # atualizar

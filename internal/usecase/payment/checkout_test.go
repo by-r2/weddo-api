@@ -145,7 +145,7 @@ func (g *giftFake) FindCashTemplateByWeddingID(context.Context, string) (*entity
 	return nil, entity.ErrNotFound
 }
 
-func (g *giftFake) List(context.Context, string, int, int, string, string, string, bool) ([]entity.Gift, int, error) {
+func (g *giftFake) List(context.Context, string, repository.GiftListParams) ([]entity.Gift, int, error) {
 	return nil, 0, nil
 }
 

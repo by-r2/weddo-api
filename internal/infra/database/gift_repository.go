@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/by-r2/weddo-api/internal/domain/entity"
 	"github.com/by-r2/weddo-api/internal/domain/repository"
@@ -84,7 +85,24 @@ func (r *giftRepository) FindCashTemplateByWeddingID(ctx context.Context, weddin
 	return &g, nil
 }
 
-func (r *giftRepository) List(ctx context.Context, weddingID string, page, perPage int, category, status, search string, catalogOnly bool) ([]entity.Gift, int, error) {
+func giftListOrderBy(sortBy, sortDir string) string {
+	switch sortBy {
+	case "price":
+		if sortDir == "desc" {
+			return "price DESC, name ASC"
+		}
+		return "price ASC, name ASC"
+	case "name":
+		if sortDir == "desc" {
+			return "name DESC"
+		}
+		return "name ASC"
+	default:
+		return "category ASC, name ASC"
+	}
+}
+
+func (r *giftRepository) List(ctx context.Context, weddingID string, p repository.GiftListParams) ([]entity.Gift, int, error) {
 	countQuery := `SELECT COUNT(*) FROM gifts WHERE wedding_id = $1`
 	listQuery := `
 		SELECT id, wedding_id, name, description, price, image_url, category, status, kind, created_at, updated_at
@@ -93,41 +111,83 @@ func (r *giftRepository) List(ctx context.Context, weddingID string, page, perPa
 	args := []any{weddingID}
 	paramIdx := 2
 
-	if catalogOnly {
+	page := p.Page
+	perPage := p.PerPage
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 {
+		perPage = 20
+	}
+
+	if p.CatalogOnly {
 		f := fmt.Sprintf(` AND kind = $%d`, paramIdx)
 		countQuery += f
 		listQuery += f
 		args = append(args, entity.GiftKindCatalog)
 		paramIdx++
 	}
-	if category != "" {
-		f := fmt.Sprintf(` AND category = $%d`, paramIdx)
-		countQuery += f
-		listQuery += f
-		args = append(args, category)
-		paramIdx++
+	if len(p.Categories) > 0 {
+		placeholders := make([]string, len(p.Categories))
+		for i := range p.Categories {
+			placeholders[i] = fmt.Sprintf("$%d", paramIdx+i)
+		}
+		clause := fmt.Sprintf(` AND category IN (%s)`, strings.Join(placeholders, ","))
+		countQuery += clause
+		listQuery += clause
+		for _, c := range p.Categories {
+			args = append(args, c)
+		}
+		paramIdx += len(p.Categories)
 	}
-	if status != "" {
+	if p.Status != "" {
 		f := fmt.Sprintf(` AND status = $%d`, paramIdx)
 		countQuery += f
 		listQuery += f
-		args = append(args, status)
+		args = append(args, p.Status)
 		paramIdx++
 	}
-	if search != "" {
+	if p.Search != "" {
 		f := fmt.Sprintf(` AND name ILIKE $%d`, paramIdx)
 		countQuery += f
 		listQuery += f
-		args = append(args, "%"+search+"%")
+		args = append(args, "%"+p.Search+"%")
 		paramIdx++
 	}
+	if p.MinPrice != nil {
+		f := fmt.Sprintf(` AND price >= $%d`, paramIdx)
+		countQuery += f
+		listQuery += f
+		args = append(args, *p.MinPrice)
+		paramIdx++
+	}
+	if p.MaxPrice != nil {
+		f := fmt.Sprintf(` AND price <= $%d`, paramIdx)
+		countQuery += f
+		listQuery += f
+		args = append(args, *p.MaxPrice)
+		paramIdx++
+	}
+
+	sortBy := strings.TrimSpace(strings.ToLower(p.SortBy))
+	if sortBy == "" {
+		sortBy = "recommended"
+	}
+	sortDir := strings.TrimSpace(strings.ToLower(p.SortDir))
+	if sortDir == "" {
+		sortDir = "asc"
+	}
+	if sortBy != "price" && sortBy != "name" {
+		sortBy = "recommended"
+	}
+	order := giftListOrderBy(sortBy, sortDir)
 
 	var total int
 	if err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("giftRepository.List: count: %w", err)
 	}
 
-	listQuery += fmt.Sprintf(` ORDER BY category, name LIMIT $%d OFFSET $%d`, paramIdx, paramIdx+1)
+	listQuery += fmt.Sprintf(` ORDER BY %s LIMIT $%d OFFSET $%d`, order, paramIdx, paramIdx+1)
 	offset := (page - 1) * perPage
 	listArgs := append(args, perPage, offset)
 
@@ -188,10 +248,13 @@ func (r *giftRepository) Delete(ctx context.Context, weddingID, id string) error
 
 func (r *giftRepository) ListCategories(ctx context.Context, weddingID string) ([]string, error) {
 	const q = `
-		SELECT DISTINCT TRIM(BOTH FROM category) AS cat
-		FROM gifts
-		WHERE wedding_id = $1 AND kind = $2
-		  AND LENGTH(TRIM(BOTH FROM category)) > 0
+		SELECT cat
+		FROM (
+			SELECT DISTINCT TRIM(BOTH FROM category) AS cat
+			FROM gifts
+			WHERE wedding_id = $1 AND kind = $2
+			  AND LENGTH(TRIM(BOTH FROM category)) > 0
+		) t
 		ORDER BY LOWER(cat)`
 
 	rows, err := r.db.QueryContext(ctx, q, weddingID, entity.GiftKindCatalog)
