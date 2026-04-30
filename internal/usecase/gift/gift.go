@@ -59,8 +59,8 @@ func (uc *UseCase) List(ctx context.Context, weddingID string, p repository.Gift
 	return uc.giftRepo.List(ctx, weddingID, p)
 }
 
-// ListCategories retorna labels distintas já usadas em presentes de catálogo (para filtros/select no front).
-func (uc *UseCase) ListCategories(ctx context.Context, weddingID string) ([]string, error) {
+// ListCategories retorna categorias de catálogo com total por categoria (para filtros/select no front).
+func (uc *UseCase) ListCategories(ctx context.Context, weddingID string) ([]repository.GiftCategoryCount, error) {
 	out, err := uc.giftRepo.ListCategories(ctx, weddingID)
 	if err != nil {
 		return nil, fmt.Errorf("gift.ListCategories: %w", err)

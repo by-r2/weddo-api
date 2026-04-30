@@ -131,7 +131,14 @@ func (h *GiftHandler) ListGiftCategories(w http.ResponseWriter, r *http.Request)
 		respondInternalError(w, r, "gift.handler.ListGiftCategories", err, "Erro ao listar categorias.")
 		return
 	}
-	respondJSON(w, http.StatusOK, dto.GiftCategoriesResponse{Categories: cats})
+	items := make([]dto.GiftCategoryItem, len(cats))
+	for i, c := range cats {
+		items[i] = dto.GiftCategoryItem{
+			Name:  c.Category,
+			Count: c.Count,
+		}
+	}
+	respondJSON(w, http.StatusOK, dto.GiftCategoriesResponse{Categories: items})
 }
 
 func (h *GiftHandler) GetPublic(w http.ResponseWriter, r *http.Request) {

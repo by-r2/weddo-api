@@ -20,6 +20,11 @@ type GiftListParams struct {
 	SortDir     string
 }
 
+type GiftCategoryCount struct {
+	Category string
+	Count    int
+}
+
 type GiftRepository interface {
 	Create(ctx context.Context, gift *entity.Gift) error
 	FindByID(ctx context.Context, weddingID, id string) (*entity.Gift, error)
@@ -30,6 +35,6 @@ type GiftRepository interface {
 	Update(ctx context.Context, gift *entity.Gift) error
 	Delete(ctx context.Context, weddingID, id string) error
 	CountByWedding(ctx context.Context, weddingID string) (total, available, purchased int, err error)
-	// ListCategories retorna categorias distintas dos gifts de catálogo (ordenadas), sem repetir valores após trim; vazio se não houver.
-	ListCategories(ctx context.Context, weddingID string) ([]string, error)
+	// ListCategories retorna categorias de catálogo com total por categoria (ordenadas).
+	ListCategories(ctx context.Context, weddingID string) ([]GiftCategoryCount, error)
 }

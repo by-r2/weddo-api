@@ -112,7 +112,7 @@ GET /api/v1/w/{weddingId}/rsvp/invitation?code=SILVA-001
 
 ### Categorias de presentes (para select / filtro)
 
-Valores **distintos** já usados em `category` nos gifts de **catálogo** do casamento (`kind = catalog`). Ordenação alfabética case-insensitive. Se ainda não existir nenhum presente, `categories` vem vazio.
+Categorias já usadas em `category` nos gifts de **catálogo** do casamento (`kind = catalog`) com total por categoria. Ordenação alfabética case-insensitive. Se ainda não existir nenhum presente, `categories` vem vazio.
 
 ```
 GET /api/v1/w/{weddingId}/gift-categories
@@ -125,7 +125,11 @@ O endpoint **admin** usa o `wedding_id` do JWT (sem path extra).
 
 ```json
 {
-  "categories": ["Cozinha", "Lua de mel", "Quarto"]
+  "categories": [
+    { "name": "Cozinha", "count": 12 },
+    { "name": "Lua de mel", "count": 8 },
+    { "name": "Quarto", "count": 5 }
+  ]
 }
 ```
 

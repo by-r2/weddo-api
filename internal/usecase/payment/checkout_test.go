@@ -157,8 +157,8 @@ func (g *giftFake) CountByWedding(context.Context, string) (int, int, int, error
 	return 0, 0, 0, nil
 }
 
-func (g *giftFake) ListCategories(context.Context, string) ([]string, error) {
-	return []string{}, nil
+func (g *giftFake) ListCategories(context.Context, string) ([]repository.GiftCategoryCount, error) {
+	return []repository.GiftCategoryCount{}, nil
 }
 
 var _ repository.GiftRepository = (*giftFake)(nil)

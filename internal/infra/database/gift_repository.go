@@ -246,16 +246,15 @@ func (r *giftRepository) Delete(ctx context.Context, weddingID, id string) error
 	return nil
 }
 
-func (r *giftRepository) ListCategories(ctx context.Context, weddingID string) ([]string, error) {
+func (r *giftRepository) ListCategories(ctx context.Context, weddingID string) ([]repository.GiftCategoryCount, error) {
 	const q = `
-		SELECT cat
-		FROM (
-			SELECT DISTINCT TRIM(BOTH FROM category) AS cat
-			FROM gifts
-			WHERE wedding_id = $1 AND kind = $2
-			  AND LENGTH(TRIM(BOTH FROM category)) > 0
-		) t
-		ORDER BY LOWER(cat)`
+		SELECT TRIM(BOTH FROM category) AS cat, COUNT(*) AS total
+		FROM gifts
+		WHERE wedding_id = $1
+		  AND kind = $2
+		  AND LENGTH(TRIM(BOTH FROM category)) > 0
+		GROUP BY TRIM(BOTH FROM category)
+		ORDER BY LOWER(TRIM(BOTH FROM category))`
 
 	rows, err := r.db.QueryContext(ctx, q, weddingID, entity.GiftKindCatalog)
 	if err != nil {
@@ -263,19 +262,19 @@ func (r *giftRepository) ListCategories(ctx context.Context, weddingID string) (
 	}
 	defer rows.Close()
 
-	var out []string
+	var out []repository.GiftCategoryCount
 	for rows.Next() {
-		var cat string
-		if err := rows.Scan(&cat); err != nil {
+		var item repository.GiftCategoryCount
+		if err := rows.Scan(&item.Category, &item.Count); err != nil {
 			return nil, fmt.Errorf("giftRepository.ListCategories: scan: %w", err)
 		}
-		out = append(out, cat)
+		out = append(out, item)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("giftRepository.ListCategories: rows: %w", err)
 	}
 	if out == nil {
-		out = []string{}
+		out = []repository.GiftCategoryCount{}
 	}
 	return out, nil
 }
