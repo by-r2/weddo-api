@@ -1,0 +1,381 @@
+$kind: http-example
+description: Lista convites com paginação e busca opcional.
+request:
+  url: "{{baseUrl}}/admin/invitations?page=1&per_page=100&search="
+  method: GET
+  queryParams:
+    - key: page
+      value: "1"
+    - key: per_page
+      value: "100"
+    - key: search
+      value: ""
+      description: Busca por label ou code
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    date: Tue, 28 Apr 2026 15:37:04 GMT
+    content-type: application/json
+    content-length: "7582"
+    connection: keep-alive
+    vary: Origin
+    apigw-requestid: ciYVJgXuIAMEPVw=
+  body:
+    type: json
+    content: |-
+      {
+        "data": [
+          {
+            "id": "4f2e17fe-ee72-4670-b7e4-bc05d929364e",
+            "code": "945VK",
+            "label": "Iago Mendes",
+            "max_guests": 1,
+            "created_at": "2026-04-28T14:55:27Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "f0f42bab-fb71-44c1-82b4-2e711470be9b",
+            "code": "C6FZT",
+            "label": "Gustavo Rodrigues",
+            "max_guests": 1,
+            "created_at": "2026-04-28T14:55:09Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "d19d1420-1a38-4a53-92a2-01e0c7e18767",
+            "code": "6WQ1F",
+            "label": "João e Patrícia",
+            "max_guests": 4,
+            "created_at": "2026-04-28T14:54:36Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "81564e92-3a0d-44f0-9d76-0d55559dfcad",
+            "code": "3HUFJ",
+            "label": "Vinicius e Laura",
+            "max_guests": 2,
+            "created_at": "2026-04-28T14:52:56Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "09820572-6912-4f1f-b36d-326f626e02f7",
+            "code": "B219D",
+            "label": "Thiago e Natalia",
+            "max_guests": 2,
+            "created_at": "2026-04-28T14:52:18Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "7e7cdebe-76ed-4dd6-b09d-ff476f5219fc",
+            "code": "IB51R",
+            "label": "Alexsandro, Viviane e Maria",
+            "max_guests": 3,
+            "created_at": "2026-04-28T14:48:46Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "71e3ca85-85e5-495a-b90f-8275e22035f4",
+            "code": "B86X3",
+            "label": "Ariana",
+            "max_guests": 1,
+            "created_at": "2026-04-28T14:46:37Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "df32ab90-44ec-4d89-b1d3-7a5e6324962f",
+            "code": "ZQC4E",
+            "label": "Raphael e Talita",
+            "max_guests": 4,
+            "created_at": "2026-04-28T14:45:12Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "aceb1782-0925-4f07-931c-3a373c51029d",
+            "code": "WKQD9",
+            "label": "João Vitor e Luana",
+            "max_guests": 2,
+            "created_at": "2026-04-28T14:43:10Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "d71412f3-9a8f-43ed-8c4b-115fa9d47944",
+            "code": "G26N2",
+            "label": "Yasmin e José",
+            "max_guests": 2,
+            "created_at": "2026-04-28T14:42:06Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "c0ca6672-9ff4-434c-a329-1f299e907ad3",
+            "code": "EUOF3",
+            "label": "Gabriele e Rodrigo",
+            "max_guests": 2,
+            "created_at": "2026-04-28T14:40:56Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "49843b68-f9f7-4638-98bf-82580f19aed6",
+            "code": "4JPWW",
+            "label": "Ana Caroline e Eduardo",
+            "max_guests": 1,
+            "created_at": "2026-04-28T14:40:08Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "fee6f16f-64ba-4e11-a517-3505dde16022",
+            "code": "9N2YZ",
+            "label": "João Victor Cotrim",
+            "max_guests": 1,
+            "created_at": "2026-04-28T14:39:08Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "b27a3835-893e-4bd4-85f2-637148e01112",
+            "code": "0FQ8U",
+            "label": "Marina e Lucas",
+            "max_guests": 2,
+            "created_at": "2026-04-28T14:38:17Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "3a0998c8-229f-41a8-8972-a993c2c8d131",
+            "code": "IXA7K",
+            "label": "Ana Giulia e Cainan",
+            "max_guests": 2,
+            "created_at": "2026-04-28T14:36:33Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "84f25982-d392-4c95-b7f6-d9342deb2492",
+            "code": "HCYS0",
+            "label": "Wallace e Gabriella",
+            "max_guests": 3,
+            "created_at": "2026-04-28T14:35:46Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "c5c2e75d-a6ce-4743-961a-853f286c2a0a",
+            "code": "CD4BB",
+            "label": "Valdete e Enrico",
+            "max_guests": 2,
+            "created_at": "2026-04-28T14:34:52Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "6eb6ac0c-21a0-4a26-92c4-bf7fb2748617",
+            "code": "JTO6A",
+            "label": "Claudemir, Rosirene e Vitória",
+            "max_guests": 3,
+            "created_at": "2026-04-28T14:32:59Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "66fd2eff-ce02-47c1-a371-be0abf3e6877",
+            "code": "IJV1J",
+            "label": "Gustavo H.",
+            "max_guests": 1,
+            "created_at": "2026-04-28T14:31:43Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "34a901f7-f73e-44e5-8ebb-622d9a223c23",
+            "code": "87PPY",
+            "label": "Taylor Moreira",
+            "max_guests": 1,
+            "created_at": "2026-04-28T14:31:12Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "efecb207-4511-4cfb-a79f-2f7bb0745e5c",
+            "code": "7VBJO",
+            "label": "Ocimar Jr.",
+            "max_guests": 1,
+            "created_at": "2026-04-28T14:30:52Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "82169b45-87ec-49fe-941d-1781ad05a333",
+            "code": "3ATXI",
+            "label": "Pedro Meneguitti",
+            "max_guests": 1,
+            "created_at": "2026-04-28T14:28:29Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "6f6b764f-a25e-4f2c-a84f-226946753e8c",
+            "code": "DX3U0",
+            "label": "Marcelo e Alice",
+            "max_guests": 2,
+            "created_at": "2026-04-28T14:27:58Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "46510cc1-30f9-4568-9e86-6fdb2e7ca486",
+            "code": "39QHL",
+            "label": "Eduarda e Andryel",
+            "max_guests": 2,
+            "created_at": "2026-04-28T14:26:59Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "aeb7fb8a-1174-4bfe-879f-ab30443f0f28",
+            "code": "MD7WJ",
+            "label": "Ícaro",
+            "max_guests": 1,
+            "created_at": "2026-04-28T14:26:10Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "a1b1ebbd-28e7-45de-88a5-32d0ffd6962a",
+            "code": "NF0JZ",
+            "label": "Nicolas",
+            "max_guests": 1,
+            "created_at": "2026-04-28T14:25:44Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "bcfffcbe-ebca-4036-aed9-4ba229ec6eea",
+            "code": "S0JQ7",
+            "label": "Rubiane e Gustavo",
+            "max_guests": 2,
+            "created_at": "2026-04-28T14:25:19Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "4ddf97dc-8839-4627-8d4c-84ed9da1bd84",
+            "code": "3A0KG",
+            "label": "Bruna e Rodrigo",
+            "max_guests": 2,
+            "created_at": "2026-04-28T14:24:30Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "19611734-356e-402f-87f6-eaf0ae3710ff",
+            "code": "A0TV9",
+            "label": "Willian Giovanni",
+            "max_guests": 1,
+            "created_at": "2026-04-28T14:23:00Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "70730c62-9f51-44c3-a34a-6f7673ad5733",
+            "code": "2ZWCI",
+            "label": "Gustavo Diogo",
+            "max_guests": 1,
+            "created_at": "2026-04-28T14:22:24Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "7c00c6c3-5d73-4e6e-aa0e-b9cd941c6f4f",
+            "code": "JUK3X",
+            "label": "Marcus Andrade",
+            "max_guests": 1,
+            "created_at": "2026-04-28T14:21:12Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "d5a987b2-4eaf-4622-b39d-8a3acab34ae0",
+            "code": "2NK3P",
+            "label": "Renato Braoios",
+            "max_guests": 1,
+            "created_at": "2026-04-28T14:20:15Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "06ec382b-a414-4e82-a92a-3cde2d4f7489",
+            "code": "7D45U",
+            "label": "Thiago Melo",
+            "max_guests": 1,
+            "created_at": "2026-04-28T14:19:39Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "86e9db2b-705f-4e2d-ac0c-7c5e46729632",
+            "code": "O2G1R",
+            "label": "João e Maria",
+            "max_guests": 2,
+            "created_at": "2026-04-28T14:17:19Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "39f6ac87-75c2-4ce1-8e23-9997f465e290",
+            "code": "1MLG2",
+            "label": "Pedro e Raphaela",
+            "max_guests": 2,
+            "created_at": "2026-04-28T14:16:26Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "be4ff200-38d6-491e-9677-904b0027624d",
+            "code": "M41PM",
+            "label": "André e Marta",
+            "max_guests": 2,
+            "created_at": "2026-04-28T14:14:16Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "34fa1f06-f08e-47bb-affd-b04d9ef8d771",
+            "code": "UE0B2",
+            "label": "Fábio e Silvia",
+            "max_guests": 4,
+            "created_at": "2026-04-28T14:11:48Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "89475ff6-3e4d-4403-bb7d-7d6a544268ef",
+            "code": "1IK0G",
+            "label": "Fernanda e Elismar",
+            "max_guests": 3,
+            "created_at": "2026-04-28T14:06:27Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "589f139a-9e93-4803-9f79-965b41a39cf0",
+            "code": "7GK0D",
+            "label": "Neuza Maria",
+            "max_guests": 1,
+            "created_at": "2026-04-28T14:04:43Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "476533b9-0f5c-43f5-883c-9f0b23d4c693",
+            "code": "6L5XY",
+            "label": "Fernando e Maria",
+            "max_guests": 2,
+            "created_at": "2026-04-28T14:02:59Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "a6f3a427-8271-4681-9f70-0cc7953063a9",
+            "code": "18SXW",
+            "label": "Rogerio, Alline e Mariana",
+            "max_guests": 3,
+            "created_at": "2026-04-28T14:00:41Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "a770c69d-5860-48b4-92a4-4510c5532c77",
+            "code": "4SHBJ",
+            "label": "Maria Flora",
+            "max_guests": 1,
+            "created_at": "2026-04-28T13:58:30Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          },
+          {
+            "id": "6009be83-798c-408c-aef7-05f2896ddd1d",
+            "code": "P8Q8L",
+            "label": "Marta e Gabriela Resende",
+            "max_guests": 2,
+            "created_at": "2026-04-27T04:15:33Z",
+            "updated_at": "2026-04-28T15:29:35Z"
+          }
+        ],
+        "meta": {
+          "page": 1,
+          "per_page": 100,
+          "total": 43,
+          "total_pages": 1
+        }
+      }
+order: 1777390636358

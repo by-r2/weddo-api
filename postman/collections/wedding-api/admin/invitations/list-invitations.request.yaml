@@ -18,4 +18,5 @@ scripts:
         pm.expect(pm.response.json().meta).to.have.property('total');
       });
     language: text/javascript
+examples: .resources/list-invitations.resources/examples
 order: 2000

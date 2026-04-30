@@ -192,7 +192,7 @@ func (r *giftRepository) ListCategories(ctx context.Context, weddingID string) (
 		FROM gifts
 		WHERE wedding_id = $1 AND kind = $2
 		  AND LENGTH(TRIM(BOTH FROM category)) > 0
-		ORDER BY LOWER(TRIM(BOTH FROM category))`
+		ORDER BY LOWER(cat)`
 
 	rows, err := r.db.QueryContext(ctx, q, weddingID, entity.GiftKindCatalog)
 	if err != nil {
