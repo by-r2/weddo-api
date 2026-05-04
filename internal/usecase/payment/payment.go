@@ -144,6 +144,11 @@ func (uc *UseCase) Checkout(ctx context.Context, input CheckoutInput) (*Purchase
 		items = append(items, it)
 	}
 
+	paymentMethod := strings.TrimSpace(input.PaymentMethod)
+	if paymentMethod == "credit_card" && strings.TrimSpace(input.CardToken) == "" {
+		paymentMethod = "pix"
+	}
+
 	total = math.Round(total*100) / 100
 	now := time.Now()
 	p := &entity.Payment{
@@ -151,7 +156,7 @@ func (uc *UseCase) Checkout(ctx context.Context, input CheckoutInput) (*Purchase
 		WeddingID:     input.WeddingID,
 		Amount:        total,
 		Status:        entity.PaymentStatusPending,
-		PaymentMethod: entity.PaymentMethod(input.PaymentMethod),
+		PaymentMethod: entity.PaymentMethod(paymentMethod),
 		PayerName:     input.PayerName,
 		PayerEmail:    input.PayerEmail,
 		Message:       input.Message,
@@ -169,7 +174,7 @@ func (uc *UseCase) Checkout(ctx context.Context, input CheckoutInput) (*Purchase
 		Description:       desc,
 		PayerName:         input.PayerName,
 		PayerEmail:        input.PayerEmail,
-		PaymentMethod:     input.PaymentMethod,
+		PaymentMethod:     paymentMethod,
 		ExternalReference: p.ID,
 		CardToken:         input.CardToken,
 		PaymentMethodID:   input.PaymentMethodID,

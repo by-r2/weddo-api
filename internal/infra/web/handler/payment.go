@@ -43,11 +43,6 @@ func (h *PaymentHandler) Checkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.PaymentMethod == "credit_card" && req.CardToken == "" {
-		respondError(w, http.StatusBadRequest, "O campo card_token é obrigatório para pagamento com cartão.")
-		return
-	}
-
 	lines := make([]paymentuc.CheckoutLineInput, 0, len(req.Items))
 	for _, it := range req.Items {
 		lines = append(lines, paymentuc.CheckoutLineInput{

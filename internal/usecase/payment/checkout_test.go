@@ -105,6 +105,36 @@ func TestCheckout_successWritesItems(t *testing.T) {
 	}
 }
 
+func TestCheckout_creditCardWithoutTokenUsesPix(t *testing.T) {
+	t.Parallel()
+	id := uuid.New().String()
+	gCatalog := entity.Gift{
+		ID:        id,
+		WeddingID: "w1",
+		Name:      "Panela",
+		Price:     50,
+		Status:    entity.GiftStatusAvailable,
+		Kind:      entity.GiftKindCatalog,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	repo := &payFake{}
+	uc := payment.NewUseCase(repo, &giftFake{gift: &gCatalog}, &gwFake{status: "pending"})
+	_, err := uc.Checkout(context.Background(), payment.CheckoutInput{
+		WeddingID:     "w1",
+		Lines:         []payment.CheckoutLineInput{{GiftID: id}},
+		PaymentMethod: "credit_card",
+		PayerName:     "A",
+		PayerEmail:    "a@test.com",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if repo.lastPaymentMethod != entity.PaymentMethodPix {
+		t.Fatalf("payment method: got %q want pix", repo.lastPaymentMethod)
+	}
+}
+
 // --- fakes ---
 
 type gwFake struct {
@@ -164,13 +194,15 @@ func (g *giftFake) ListCategories(context.Context, string) ([]string, error) {
 var _ repository.GiftRepository = (*giftFake)(nil)
 
 type payFake struct {
-	lastItemsLen int
-	savedTotal   float64
+	lastItemsLen        int
+	savedTotal          float64
+	lastPaymentMethod   entity.PaymentMethod
 }
 
 func (p *payFake) CreateWithItems(_ context.Context, pay *entity.Payment, items []entity.PaymentItem) error {
 	p.lastItemsLen = len(items)
 	p.savedTotal = pay.Amount
+	p.lastPaymentMethod = pay.PaymentMethod
 	return nil
 }
 
