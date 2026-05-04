@@ -1,0 +1,14 @@
+$kind: http-request
+description: Retorna estatísticas consolidadas de RSVP e presentes.
+url: "{{baseUrl}}/admin/dashboard"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      pm.test('Tem stats de RSVP', () => {
+        const body = pm.response.json();
+        pm.expect(body.rsvp).to.have.property('total_guests');
+      });
+    language: text/javascript
+order: 1000

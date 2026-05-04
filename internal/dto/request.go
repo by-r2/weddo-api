@@ -41,7 +41,6 @@ type RSVPRequest struct {
 // Invitations
 
 type CreateInvitationRequest struct {
-	Code      string              `json:"code" validate:"required,max=50"`
 	Label     string              `json:"label" validate:"required,max=100"`
 	MaxGuests int                 `json:"max_guests" validate:"required,min=1"`
 	Notes     string              `json:"notes"`
@@ -49,7 +48,10 @@ type CreateInvitationRequest struct {
 }
 
 type CreateGuestInline struct {
-	Name string `json:"name" validate:"required,max=100"`
+	Name   string `json:"name" validate:"required,max=100"`
+	Phone  string `json:"phone"`
+	Email  string `json:"email"`
+	Status string `json:"status" validate:"omitempty,oneof=pending confirmed declined"`
 }
 
 type UpdateInvitationRequest struct {
@@ -62,9 +64,10 @@ type UpdateInvitationRequest struct {
 // Guests
 
 type AddGuestRequest struct {
-	Name  string `json:"name" validate:"required,max=100"`
-	Phone string `json:"phone"`
-	Email string `json:"email"`
+	Name   string `json:"name" validate:"required,max=100"`
+	Phone  string `json:"phone"`
+	Email  string `json:"email"`
+	Status string `json:"status" validate:"omitempty,oneof=pending confirmed declined"`
 }
 
 type UpdateGuestRequest struct {

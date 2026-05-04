@@ -108,6 +108,26 @@ func TestConfirm_updateError(t *testing.T) {
 	}
 }
 
+func TestConfirm_declinedCannotConfirmAgain(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 4, 1, 12, 0, 0, 0, time.UTC)
+	inv := &entity.Invitation{ID: "inv-1", WeddingID: "w1", Code: "ABC", Label: "Família", MaxGuests: 3}
+	g := &entity.Guest{
+		ID: "g1", InvitationID: inv.ID, WeddingID: "w1", Name: "João",
+		Status: entity.GuestStatusDeclined, CreatedAt: now, UpdatedAt: now,
+	}
+	guestR := &guestFake{find: g}
+	uc := rsvp.NewUseCase(guestR, &invFake{findByCode: inv})
+
+	_, _, _, err := uc.Confirm(context.Background(), "w1", "ABC", "João")
+	if !errors.Is(err, rsvp.ErrGuestStatusTransitionNotAllowed) {
+		t.Fatalf("got %v, want ErrGuestStatusTransitionNotAllowed", err)
+	}
+	if guestR.updateN != 0 {
+		t.Fatalf("Update should not run, got %d calls", guestR.updateN)
+	}
+}
+
 func TestFindInvitationByCode_notFound(t *testing.T) {
 	t.Parallel()
 	uc := rsvp.NewUseCase(&guestFake{}, &invFake{findByCodeErr: entity.ErrNotFound})

@@ -508,7 +508,11 @@ func (uc *UseCase) listAllGifts(ctx context.Context, weddingID string) ([]entity
 	var out []entity.Gift
 	page, perPage := 1, 100
 	for {
-		items, total, err := uc.giftRepo.List(ctx, weddingID, page, perPage, "", "", "", true)
+		items, total, err := uc.giftRepo.List(ctx, weddingID, repository.GiftListParams{
+			Page:        page,
+			PerPage:     perPage,
+			CatalogOnly: true,
+		})
 		if err != nil {
 			return nil, fmt.Errorf("sheets.listAllGifts: %w", err)
 		}

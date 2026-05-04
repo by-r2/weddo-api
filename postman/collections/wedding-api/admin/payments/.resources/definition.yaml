@@ -1,0 +1,3 @@
+$kind: collection
+description: Consulta de pagamentos (somente leitura para admin).
+order: 6000

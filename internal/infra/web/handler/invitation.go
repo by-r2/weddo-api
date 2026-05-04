@@ -29,18 +29,22 @@ func (h *InvitationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	guestNames := make([]string, len(req.Guests))
+	guests := make([]invitation.CreateGuestInput, len(req.Guests))
 	for i, g := range req.Guests {
-		guestNames[i] = g.Name
+		guests[i] = invitation.CreateGuestInput{
+			Name:   g.Name,
+			Phone:  g.Phone,
+			Email:  g.Email,
+			Status: g.Status,
+		}
 	}
 
 	inv, err := h.invUC.Create(r.Context(), invitation.CreateInput{
 		WeddingID: weddingID,
-		Code:      req.Code,
 		Label:     req.Label,
 		MaxGuests: req.MaxGuests,
 		Notes:     req.Notes,
-		Guests:    guestNames,
+		Guests:    guests,
 	})
 	if err != nil {
 		respondInternalError(w, r, "invitation.handler.Create", err, "Erro ao criar convite.")
@@ -145,7 +149,7 @@ func (h *InvitationHandler) AddGuest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	guest, err := h.invUC.AddGuest(r.Context(), weddingID, invID, req.Name, req.Phone, req.Email)
+	guest, err := h.invUC.AddGuest(r.Context(), weddingID, invID, req.Name, req.Phone, req.Email, req.Status)
 	if err != nil {
 		if errors.Is(err, entity.ErrNotFound) {
 			respondError(w, http.StatusNotFound, "Convite não encontrado.")

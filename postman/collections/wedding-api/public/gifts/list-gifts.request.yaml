@@ -1,0 +1,41 @@
+$kind: http-request
+description: Lista apenas presentes disponíveis (status = available). category pode repetir para múltiplas categorias.
+url: "{{baseUrl}}/w/{{weddingId}}/gifts?page=1&per_page=20&search=&min_price=&max_price=&sort_by=recommended&sort_dir=asc"
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+  - key: per_page
+    value: "20"
+  - key: category
+    value: ""
+    description: Filtrar por categoria (repita o parâmetro para várias)
+  - key: search
+    value: ""
+    description: Buscar por nome
+  - key: min_price
+    value: ""
+    description: Preço mínimo
+  - key: max_price
+    value: ""
+    description: Preço máximo
+  - key: sort_by
+    value: recommended
+    description: recommended | price | name
+  - key: sort_dir
+    value: asc
+    description: asc | desc
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+
+      const body = pm.response.json();
+      if (body.data && body.data.length > 0) {
+        pm.environment.set('giftId', body.data[0].id);
+        pm.test('Só presentes available', () => {
+          body.data.forEach(g => pm.expect(g.status).to.eql('available'));
+        });
+      }
+    language: text/javascript
+order: 2000

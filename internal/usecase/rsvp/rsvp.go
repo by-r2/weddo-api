@@ -39,6 +39,10 @@ func (uc *UseCase) Confirm(ctx context.Context, weddingID, invitationCode, guest
 
 	alreadyConfirmed := guest.Status == entity.GuestStatusConfirmed
 
+	if guest.Status == entity.GuestStatusDeclined {
+		return nil, nil, false, ErrGuestStatusTransitionNotAllowed
+	}
+
 	if !alreadyConfirmed {
 		now := time.Now()
 		guest.Status = entity.GuestStatusConfirmed

@@ -39,6 +39,7 @@ type Config struct {
 	CORSAllowedOrigins string `envconfig:"CORS_ALLOWED_ORIGINS" default:"*"`
 	LogLevel           string `envconfig:"LOG_LEVEL" default:"info"`
 	LogFormat          string `envconfig:"LOG_FORMAT" default:"text"`
+	InvitationCodeLen  int    `envconfig:"INVITATION_CODE_LENGTH" default:"5"`
 }
 
 func Load() (*Config, error) {

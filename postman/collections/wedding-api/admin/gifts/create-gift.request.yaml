@@ -1,0 +1,26 @@
+$kind: http-request
+description: Cadastra um presente na lista.
+url: "{{baseUrl}}/admin/gifts"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "name": "Jogo de Panelas",
+      "description": "Jogo com 5 peças antiaderente",
+      "price": 350.00,
+      "image_url": "https://img.example.com/panelas.jpg",
+      "category": "Cozinha"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 201', () => pm.response.to.have.status(201));
+
+      if (pm.response.code === 201) {
+        pm.environment.set('giftId', pm.response.json().id);
+      }
+    language: text/javascript
+order: 2000

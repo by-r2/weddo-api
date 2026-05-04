@@ -1,0 +1,10 @@
+$kind: http-request
+name: gift-categories
+description: Categorias distintas já usadas nos presentes do catálogo (tenant via JWT).
+url: "{{baseUrl}}/admin/gift-categories"
+method: GET
+auth:
+  type: inherit
+  credentials:
+    id: a7005ba7-df3f-47ef-9009-09529a3fcc49
+order: 1000

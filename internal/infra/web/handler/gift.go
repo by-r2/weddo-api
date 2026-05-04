@@ -3,12 +3,23 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/by-r2/weddo-api/internal/domain/entity"
+	"github.com/by-r2/weddo-api/internal/domain/repository"
 	"github.com/by-r2/weddo-api/internal/dto"
 	"github.com/by-r2/weddo-api/internal/infra/web/middleware"
 	giftuc "github.com/by-r2/weddo-api/internal/usecase/gift"
 	"github.com/go-chi/chi/v5"
+)
+
+var (
+	errGiftListInvalidSortBy   = errors.New("Parâmetro sort_by inválido. Use recommended, price ou name.")
+	errGiftListInvalidSortDir  = errors.New("Parâmetro sort_dir inválido. Use asc ou desc.")
+	errGiftListInvalidMinPrice = errors.New("Parâmetro min_price inválido.")
+	errGiftListInvalidMaxPrice = errors.New("Parâmetro max_price inválido.")
+	errGiftListPriceRange      = errors.New("O valor mínimo de preço não pode ser maior que o máximo.")
 )
 
 type GiftHandler struct {
@@ -19,15 +30,83 @@ func NewGiftHandler(uc *giftuc.UseCase) *GiftHandler {
 	return &GiftHandler{giftUC: uc}
 }
 
+func parseGiftListQuery(r *http.Request, page, perPage int) (repository.GiftListParams, error) {
+	q := r.URL.Query()
+	p := repository.GiftListParams{
+		Page:    page,
+		PerPage: perPage,
+		Search:  strings.TrimSpace(q.Get("search")),
+	}
+
+	seenCat := make(map[string]struct{})
+	for _, c := range q["category"] {
+		c = strings.TrimSpace(c)
+		if c == "" {
+			continue
+		}
+		key := strings.ToLower(c)
+		if _, ok := seenCat[key]; ok {
+			continue
+		}
+		seenCat[key] = struct{}{}
+		p.Categories = append(p.Categories, c)
+	}
+
+	sortBy := strings.TrimSpace(strings.ToLower(q.Get("sort_by")))
+	if sortBy == "" {
+		sortBy = "recommended"
+	}
+	switch sortBy {
+	case "recommended", "price", "name":
+		p.SortBy = sortBy
+	default:
+		return p, errGiftListInvalidSortBy
+	}
+
+	sortDir := strings.TrimSpace(strings.ToLower(q.Get("sort_dir")))
+	if sortDir == "" {
+		sortDir = "asc"
+	}
+	if sortDir != "asc" && sortDir != "desc" {
+		return p, errGiftListInvalidSortDir
+	}
+	p.SortDir = sortDir
+
+	if s := q.Get("min_price"); s != "" {
+		v, scanErr := strconv.ParseFloat(s, 64)
+		if scanErr != nil || v < 0 {
+			return p, errGiftListInvalidMinPrice
+		}
+		p.MinPrice = &v
+	}
+	if s := q.Get("max_price"); s != "" {
+		v, scanErr := strconv.ParseFloat(s, 64)
+		if scanErr != nil || v < 0 {
+			return p, errGiftListInvalidMaxPrice
+		}
+		p.MaxPrice = &v
+	}
+	if p.MinPrice != nil && p.MaxPrice != nil && *p.MinPrice > *p.MaxPrice {
+		return p, errGiftListPriceRange
+	}
+
+	return p, nil
+}
+
 // ListPublic lista só presentes de catálogo; o modelo de contribuição em dinheiro (cash_template)
 // não aparece aqui — doações ficam ligadas aos pagamentos/linhas, não ao catálogo.
 func (h *GiftHandler) ListPublic(w http.ResponseWriter, r *http.Request) {
 	weddingID := middleware.GetWeddingID(r.Context())
 	page, perPage := parsePagination(r)
-	category := r.URL.Query().Get("category")
-	search := r.URL.Query().Get("search")
+	params, err := parseGiftListQuery(r, page, perPage)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	params.Status = string(entity.GiftStatusAvailable)
+	params.CatalogOnly = true
 
-	gifts, total, err := h.giftUC.List(r.Context(), weddingID, page, perPage, category, string(entity.GiftStatusAvailable), search, true)
+	gifts, total, err := h.giftUC.List(r.Context(), weddingID, params)
 	if err != nil {
 		respondInternalError(w, r, "gift.handler.ListPublic", err, "Erro ao listar presentes.")
 		return
@@ -52,7 +131,14 @@ func (h *GiftHandler) ListGiftCategories(w http.ResponseWriter, r *http.Request)
 		respondInternalError(w, r, "gift.handler.ListGiftCategories", err, "Erro ao listar categorias.")
 		return
 	}
-	respondJSON(w, http.StatusOK, dto.GiftCategoriesResponse{Categories: cats})
+	items := make([]dto.GiftCategoryItem, len(cats))
+	for i, c := range cats {
+		items[i] = dto.GiftCategoryItem{
+			Name:  c.Category,
+			Count: c.Count,
+		}
+	}
+	respondJSON(w, http.StatusOK, dto.GiftCategoriesResponse{Categories: items})
 }
 
 func (h *GiftHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
@@ -105,11 +191,15 @@ func (h *GiftHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *GiftHandler) List(w http.ResponseWriter, r *http.Request) {
 	weddingID := middleware.GetWeddingID(r.Context())
 	page, perPage := parsePagination(r)
-	category := r.URL.Query().Get("category")
-	status := r.URL.Query().Get("status")
-	search := r.URL.Query().Get("search")
+	params, err := parseGiftListQuery(r, page, perPage)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	params.Status = strings.TrimSpace(r.URL.Query().Get("status"))
+	params.CatalogOnly = true
 
-	gifts, total, err := h.giftUC.List(r.Context(), weddingID, page, perPage, category, status, search, true)
+	gifts, total, err := h.giftUC.List(r.Context(), weddingID, params)
 	if err != nil {
 		respondInternalError(w, r, "gift.handler.List", err, "Erro ao listar presentes.")
 		return

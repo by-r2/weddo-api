@@ -1,0 +1,16 @@
+$kind: http-request
+description: Verifica se o servidor está ativo. Não requer autenticação.
+url: "{{baseUrl}}/health"
+method: GET
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      pm.test('Status ok', () => {
+        const body = pm.response.json();
+        pm.expect(body.status).to.eql('ok');
+      });
+    language: text/javascript
+order: 1000

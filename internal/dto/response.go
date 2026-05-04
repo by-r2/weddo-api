@@ -119,7 +119,12 @@ type GiftResponse struct {
 }
 
 type GiftCategoriesResponse struct {
-	Categories []string `json:"categories"`
+	Categories []GiftCategoryItem `json:"categories"`
+}
+
+type GiftCategoryItem struct {
+	Name  string `json:"name"`
+	Count int    `json:"count"`
 }
 
 // Payments

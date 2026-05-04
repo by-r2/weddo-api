@@ -80,6 +80,14 @@ Mensagens possíveis: `Convite não encontrado.` ou `Convidado não encontrado n
 }
 ```
 
+**Response 409 — convidado recusado anteriormente:**
+
+```json
+{
+  "error": "Este convidado recusou o convite e não pode confirmar novamente."
+}
+```
+
 ### Consultar convite (lista do grupo)
 
 ```
@@ -104,7 +112,7 @@ GET /api/v1/w/{weddingId}/rsvp/invitation?code=SILVA-001
 
 ### Categorias de presentes (para select / filtro)
 
-Valores **distintos** já usados em `category` nos gifts de **catálogo** do casamento (`kind = catalog`). Ordenação alfabética case-insensitive. Se ainda não existir nenhum presente, `categories` vem vazio.
+Categorias já usadas em `category` nos gifts de **catálogo** do casamento (`kind = catalog`) com total por categoria. Ordenação alfabética case-insensitive. Se ainda não existir nenhum presente, `categories` vem vazio.
 
 ```
 GET /api/v1/w/{weddingId}/gift-categories
@@ -117,15 +125,30 @@ O endpoint **admin** usa o `wedding_id` do JWT (sem path extra).
 
 ```json
 {
-  "categories": ["Cozinha", "Lua de mel", "Quarto"]
+  "categories": [
+    { "name": "Cozinha", "count": 12 },
+    { "name": "Lua de mel", "count": 8 },
+    { "name": "Quarto", "count": 5 }
+  ]
 }
 ```
 
 ### Listar Presentes
 
 ```
-GET /api/v1/w/{weddingId}/gifts?category=cozinha
+GET /api/v1/w/{weddingId}/gifts?page=1&per_page=20&category=Cozinha&category=Quarto&search=panela&min_price=0&max_price=500&sort_by=recommended&sort_dir=asc
 ```
+
+**Query params opcionais**
+
+| Parâmetro | Descrição |
+|-----------|-----------|
+| `page`, `per_page` | Paginação (`per_page` máximo 100 no servidor). |
+| `category` | Repita o parâmetro para várias categorias: `?category=A&category=B`. Match exato ao valor salvo no presente. |
+| `search` | Busca por nome (`ILIKE`). |
+| `min_price`, `max_price` | Faixa de preço (números ≥ 0; `min_price` não pode ser maior que `max_price`). |
+| `sort_by` | `recommended` (padrão: `category` ASC, `name` ASC), `price` ou `name`. |
+| `sort_dir` | `asc` ou `desc` (padrão `asc`). Ignorado quando `sort_by=recommended`. |
 
 **Response 200:**
 
@@ -148,7 +171,7 @@ GET /api/v1/w/{weddingId}/gifts?category=cozinha
 }
 ```
 
-A listagem pública mostra apenas presentes do **catálogo** com status `available`. O modelo interno **Contribuição em dinheiro** (`kind: cash_template`, id `cashttpl-<uuid do casamento>`) **não** entra nesta lista — aparece apenas no fluxo de checkout e nos pagamentos. Filtros opcionais: `?category=Cozinha&search=panela&page=1&per_page=20`.
+A listagem pública mostra apenas presentes do **catálogo** com status `available`. O modelo interno **Contribuição em dinheiro** (`kind: cash_template`, id `cashttpl-<uuid do casamento>`) **não** entra nesta lista — aparece apenas no fluxo de checkout e nos pagamentos. Filtros opcionais: ver tabela acima (`category` repetido, `search`, `min_price`, `max_price`, `sort_by`, `sort_dir`, paginação).
 
 ### Detalhar Presente
 
@@ -338,20 +361,32 @@ PUT    /api/v1/admin/invitations/{id}     # atualizar
 DELETE /api/v1/admin/invitations/{id}     # remover (cascade guests)
 ```
 
-**Criar convite com convidados:**
+**Criar convite com convidados (schema completo):**
 
 ```json
 {
-  "code": "SILVA-001",
   "label": "Família Silva",
   "max_guests": 4,
+  "notes": "Mesa próxima à família",
   "guests": [
-    { "name": "João Silva" },
-    { "name": "Maria Silva" },
-    { "name": "Pedro Silva" }
+    {
+      "name": "João Silva",
+      "phone": "11999998888",
+      "email": "joao@email.com",
+      "status": "pending"
+    },
+    {
+      "name": "Maria Silva",
+      "phone": "11999997777",
+      "email": "maria@email.com",
+      "status": "confirmed"
+    }
   ]
 }
 ```
+
+> O `code` é gerado automaticamente pela API (alfanumérico curto com letras maiúsculas e números em ordem aleatória).
+> `status` é opcional em cada convidado (`pending`, `confirmed` ou `declined`). Se omitido, usa `pending`.
 
 **Detalhar convite (response):**
 
@@ -381,12 +416,34 @@ DELETE /api/v1/admin/guests/{id}          # remover
 POST   /api/v1/admin/invitations/{id}/guests  # adicionar a convite existente
 ```
 
+**Adicionar convidado a convite existente:**
+
+```json
+{
+  "name": "Ana Silva",
+  "phone": "11988887777",
+  "email": "ana@email.com",
+  "status": "pending"
+}
+```
+
+> `status` também é opcional aqui e segue o mesmo comportamento (default `pending`).
+
+**Regras de transição de status (`PUT /api/v1/admin/guests/{id}`):**
+
+- `pending -> confirmed` ✅
+- `pending -> declined` ✅
+- `confirmed -> declined` ✅
+- `confirmed -> pending` ❌
+- `declined -> pending` ❌
+- `declined -> confirmed` ❌
+
 ### Presentes (Gifts)
 
 Lista e CRUD apenas para **`kind = catalog`** (o modelo de contribuição em dinheiro não aparece nem pode ser alterado por aqui).
 
 ```
-GET    /api/v1/admin/gifts                # listar (?page=1&per_page=20&category=Cozinha&status=available&search=panela)
+GET    /api/v1/admin/gifts                # listar (?page=&per_page=&category=&status=&search=&min_price=&max_price=&sort_by=&sort_dir=)
 POST   /api/v1/admin/gifts                # criar
 GET    /api/v1/admin/gifts/{id}           # detalhar
 PUT    /api/v1/admin/gifts/{id}           # atualizar

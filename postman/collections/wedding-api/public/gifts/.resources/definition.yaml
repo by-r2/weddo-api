@@ -1,0 +1,3 @@
+$kind: collection
+description: Lista de presentes e fluxo de compra. Não requer autenticação.
+order: 2000

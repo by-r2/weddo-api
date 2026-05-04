@@ -1,0 +1,48 @@
+$kind: http-request
+description: >-
+  Inicia pagamento via PIX.
+
+
+  - **InfinitePay**: retorna `checkout_url` (redirecionar o usuário)
+
+  - **Mercado Pago**: retorna `qr_code` e `qr_code_base64` (exibir inline)
+
+
+  O campo `redirect_url` é opcional (sobrescreve `IP_REDIRECT_URL` global,
+  apenas InfinitePay).
+
+
+  Requer `PAYMENT_PROVIDER` configurado no servidor.
+url: "{{baseUrl}}/w/{{weddingId}}/checkout"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "items": [
+        { "gift_id": "{{giftId}}" }
+      ],
+      "payer_name": "Tia Maria",
+      "payer_email": "maria@email.com",
+      "message": "Felicidades ao casal!",
+      "payment_method": "pix",
+      "redirect_url": "https://manurafa.com.br/obrigado"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 201 ou 503', () => {
+        pm.expect(pm.response.code).to.be.oneOf([201, 503]);
+      });
+
+      if (pm.response.code === 201) {
+        const body = pm.response.json();
+        pm.environment.set('paymentId', body.payment_id);
+        pm.test('Tem checkout_url ou qr_code', () => {
+          pm.expect(body.checkout_url || body.qr_code).to.be.a('string');
+        });
+      }
+    language: text/javascript
+order: 4000

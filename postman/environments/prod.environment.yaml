@@ -1,0 +1,24 @@
+name: prod
+values:
+  - key: baseUrl
+    enabled: true
+    value: ''
+  - key: weddingId
+    enabled: true
+    value: ''
+  - key: token
+    enabled: true
+    value: ''
+  - key: guestId
+    enabled: true
+    value: ''
+  - key: invitationId
+    enabled: true
+    value: ''
+  - key: invitationCode
+    enabled: true
+    value: ''
+  - key: giftId
+    enabled: true
+    value: ''
+color: 0

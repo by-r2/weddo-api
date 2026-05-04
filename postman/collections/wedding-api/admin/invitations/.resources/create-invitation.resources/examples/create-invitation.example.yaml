@@ -1,0 +1,35 @@
+$kind: http-example
+request:
+  url: "{{baseUrl}}/admin/invitations"
+  method: POST
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "label": "Família Silva",
+        "max_guests": 4,
+        "notes": "Mesa próxima à família",
+        "guests": [
+          {
+            "name": "João Silva",
+            "phone": "11999998888",
+            "email": "joao@email.com",
+            "status": "pending"
+          },
+          {
+            "name": "Maria Silva",
+            "phone": "11999997777",
+            "email": "maria@email.com",
+            "status": "confirmed"
+          }
+        ]
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  body:
+    type: json
+    content: ""
+order: 2173351495422739

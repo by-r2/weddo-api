@@ -1,0 +1,5 @@
+$kind: collection
+description: Webhooks de provedores de pagamento. Não requerem JWT. O formato do
+  payload depende do `PAYMENT_PROVIDER` configurado (InfinitePay ou Mercado
+  Pago).
+order: 4000

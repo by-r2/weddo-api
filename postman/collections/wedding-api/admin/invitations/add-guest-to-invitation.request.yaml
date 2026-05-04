@@ -1,0 +1,25 @@
+$kind: http-request
+description: Adiciona um convidado a um convite existente.
+url: "{{baseUrl}}/admin/invitations/{{invitationId}}/guests"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "name": "Ana Silva",
+      "phone": "11999998888",
+      "email": "ana@email.com",
+      "status": "pending"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 201', () => pm.response.to.have.status(201));
+
+      if (pm.response.code === 201) {
+        pm.environment.set('guestId', pm.response.json().id);
+      }
+    language: text/javascript
+order: 5000

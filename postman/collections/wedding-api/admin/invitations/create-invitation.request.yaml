@@ -1,0 +1,46 @@
+$kind: http-request
+name: create-invitation
+description: Cria um convite com convidados inline (schema completo). O campo `guests` é opcional.
+url: "{{baseUrl}}/admin/invitations"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "label": "Família Silva",
+      "max_guests": 4,
+      "notes": "Mesa próxima à família",
+      "guests": [
+        {
+          "name": "João Silva",
+          "phone": "11999998888",
+          "email": "joao@email.com",
+          "status": "pending"
+        },
+        {
+          "name": "Maria Silva",
+          "phone": "11999997777",
+          "email": "maria@email.com",
+          "status": "confirmed"
+        }
+      ]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 201', () => pm.response.to.have.status(201));
+
+      if (pm.response.code === 201) {
+        const body = pm.response.json();
+        pm.environment.set('invitationId', body.id);
+        if (body.code) {
+          pm.environment.set('invitationCode', body.code);
+        }
+        if (body.guests && body.guests.length > 0) {
+          pm.environment.set('guestId', body.guests[0].id);
+        }
+      }
+    language: text/javascript
+order: 1000

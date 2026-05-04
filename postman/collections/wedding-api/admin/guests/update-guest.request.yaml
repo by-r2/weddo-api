@@ -1,0 +1,30 @@
+$kind: http-request
+description: "Atualiza dados e/ou status do convidado. Status aceitos:
+  `pending`, `confirmed`, `declined`.
+
+  Regras de transição:
+  - pending -> confirmed/declined
+  - confirmed -> declined
+  - confirmed -> pending (bloqueado)
+  - declined -> qualquer outro (bloqueado)"
+url: "{{baseUrl}}/admin/guests/{{guestId}}"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "name": "João Silva",
+      "phone": "11999997777",
+      "email": "joao@email.com",
+      "status": "confirmed"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200 ou 409', () => {
+        pm.expect(pm.response.code).to.be.oneOf([200, 409]);
+      });
+    language: text/javascript
+order: 3000

@@ -1,0 +1,44 @@
+$kind: http-request
+description: >-
+  Inicia pagamento via cartão de crédito.
+
+
+  - **Mercado Pago**: `card_token` é gerado pelo MercadoPago.js no frontend. Em
+  sandbox, use tokens de teste.
+
+  - **InfinitePay**: `card_token` e `payment_method_id` são ignorados — o
+  checkout de cartão acontece no redirect.
+
+
+  Requer `PAYMENT_PROVIDER` configurado no servidor.
+url: "{{baseUrl}}/w/{{weddingId}}/checkout"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "items": [
+        { "gift_id": "{{giftId}}" }
+      ],
+      "payer_name": "Tia Maria",
+      "payer_email": "maria@email.com",
+      "message": "Felicidades ao casal!",
+      "payment_method": "credit_card",
+      "card_token": "TOKEN_DO_MERCADOPAGO_JS",
+      "payment_method_id": "visa",
+      "installments": 1
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 201 ou 503', () => {
+        pm.expect(pm.response.code).to.be.oneOf([201, 503]);
+      });
+
+      if (pm.response.code === 201) {
+        pm.environment.set('paymentId', pm.response.json().payment_id);
+      }
+    language: text/javascript
+order: 5000

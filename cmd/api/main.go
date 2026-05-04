@@ -74,13 +74,14 @@ func main() {
 	paymentRepo := database.NewPaymentRepository(db)
 	googleIntegrationRepo := database.NewGoogleIntegrationRepository(db)
 	userRepo := database.NewUserRepository(db)
+	txManager := database.NewTransactionManager(db)
 
 	ensureCashTpl := func(ctx context.Context, weddingID string) error {
 		return giftuc.EnsureCashTemplate(ctx, giftRepo, weddingID)
 	}
 	weddingUC := wedding.NewUseCase(weddingRepo, userRepo, cfg.JWTSecret, cfg.JWTExpirationHours, ensureCashTpl)
 	rsvpUC := rsvp.NewUseCase(guestRepo, invitationRepo)
-	invitationUC := invitation.NewUseCase(invitationRepo, guestRepo)
+	invitationUC := invitation.NewUseCase(invitationRepo, guestRepo, txManager, cfg.InvitationCodeLen)
 	guestUC := guest.NewUseCase(guestRepo, invitationRepo)
 	giftUC := giftuc.NewUseCase(giftRepo, paymentRepo)
 	userUC := user.NewUseCase(userRepo)

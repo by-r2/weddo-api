@@ -2,66 +2,114 @@ package invitation
 
 import (
 	"context"
+	"crypto/rand"
+	"errors"
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/by-r2/weddo-api/internal/domain/entity"
 	"github.com/by-r2/weddo-api/internal/domain/repository"
+	"github.com/google/uuid"
 )
 
 type UseCase struct {
-	invRepo  repository.InvitationRepository
-	guestRepo repository.GuestRepository
+	invRepo    repository.InvitationRepository
+	guestRepo  repository.GuestRepository
+	txManager  repository.TransactionManager
+	codeLength int
 }
 
-func NewUseCase(ir repository.InvitationRepository, gr repository.GuestRepository) *UseCase {
-	return &UseCase{invRepo: ir, guestRepo: gr}
+func NewUseCase(
+	ir repository.InvitationRepository,
+	gr repository.GuestRepository,
+	txManager repository.TransactionManager,
+	codeLength int,
+) *UseCase {
+	if codeLength < invitationCodeMinLength {
+		codeLength = invitationCodeDefaultLength
+	}
+	return &UseCase{
+		invRepo:    ir,
+		guestRepo:  gr,
+		txManager:  txManager,
+		codeLength: codeLength,
+	}
+}
+
+type CreateGuestInput struct {
+	Name   string
+	Phone  string
+	Email  string
+	Status string
 }
 
 type CreateInput struct {
 	WeddingID string
-	Code      string
 	Label     string
 	MaxGuests int
 	Notes     string
-	Guests    []string // nomes dos convidados
+	Guests    []CreateGuestInput
 }
 
 func (uc *UseCase) Create(ctx context.Context, input CreateInput) (*entity.Invitation, error) {
 	now := time.Now()
-	inv := &entity.Invitation{
-		ID:        uuid.New().String(),
-		WeddingID: input.WeddingID,
-		Code:      input.Code,
-		Label:     input.Label,
-		MaxGuests: input.MaxGuests,
-		Notes:     input.Notes,
-		CreatedAt: now,
-		UpdatedAt: now,
-	}
-
-	if err := uc.invRepo.Create(ctx, inv); err != nil {
-		return nil, fmt.Errorf("invitation.Create: %w", err)
-	}
-
-	for _, name := range input.Guests {
-		guest := &entity.Guest{
-			ID:           uuid.New().String(),
-			InvitationID: inv.ID,
-			WeddingID:    input.WeddingID,
-			Name:         name,
-			Status:       entity.GuestStatusPending,
-			CreatedAt:    now,
-			UpdatedAt:    now,
+	for range invitationCodeMaxAttempts {
+		code, err := uc.generateUniqueCode(ctx, input.WeddingID)
+		if err != nil {
+			return nil, fmt.Errorf("invitation.Create: generate code: %w", err)
 		}
-		if err := uc.guestRepo.Create(ctx, guest); err != nil {
-			return nil, fmt.Errorf("invitation.Create: create guest %q: %w", name, err)
+
+		inv := &entity.Invitation{
+			ID:        uuid.New().String(),
+			WeddingID: input.WeddingID,
+			Code:      code,
+			Label:     input.Label,
+			MaxGuests: input.MaxGuests,
+			Notes:     input.Notes,
+			CreatedAt: now,
+			UpdatedAt: now,
 		}
-		inv.Guests = append(inv.Guests, *guest)
+
+		err = uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+			if err := uc.invRepo.Create(txCtx, inv); err != nil {
+				return fmt.Errorf("invitation.Create: %w", err)
+			}
+
+			for _, gi := range input.Guests {
+				status := sanitizeGuestStatus(gi.Status)
+				guest := &entity.Guest{
+					ID:           uuid.New().String(),
+					InvitationID: inv.ID,
+					WeddingID:    input.WeddingID,
+					Name:         gi.Name,
+					Phone:        gi.Phone,
+					Email:        gi.Email,
+					Status:       status,
+					CreatedAt:    now,
+					UpdatedAt:    now,
+				}
+				if status == entity.GuestStatusConfirmed {
+					confirmedAt := now
+					guest.ConfirmedAt = &confirmedAt
+				}
+				if err := uc.guestRepo.Create(txCtx, guest); err != nil {
+					return fmt.Errorf("invitation.Create: create guest %q: %w", gi.Name, err)
+				}
+				inv.Guests = append(inv.Guests, *guest)
+			}
+			return nil
+		})
+		if errors.Is(err, entity.ErrAlreadyExists) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		return inv, nil
 	}
 
-	return inv, nil
+	return nil, errors.New("não foi possível gerar um código de convite único")
 }
 
 func (uc *UseCase) FindByID(ctx context.Context, weddingID, id string) (*entity.Invitation, error) {
@@ -115,12 +163,9 @@ func (uc *UseCase) Delete(ctx context.Context, weddingID, id string) error {
 }
 
 // AddGuest adiciona um convidado a um convite existente.
-func (uc *UseCase) AddGuest(ctx context.Context, weddingID, invitationID, name, phone, email string) (*entity.Guest, error) {
-	if _, err := uc.invRepo.FindByID(ctx, weddingID, invitationID); err != nil {
-		return nil, err
-	}
-
+func (uc *UseCase) AddGuest(ctx context.Context, weddingID, invitationID, name, phone, email, statusRaw string) (*entity.Guest, error) {
 	now := time.Now()
+	status := sanitizeGuestStatus(statusRaw)
 	guest := &entity.Guest{
 		ID:           uuid.New().String(),
 		InvitationID: invitationID,
@@ -128,13 +173,101 @@ func (uc *UseCase) AddGuest(ctx context.Context, weddingID, invitationID, name, 
 		Name:         name,
 		Phone:        phone,
 		Email:        email,
-		Status:       entity.GuestStatusPending,
+		Status:       status,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
+	if status == entity.GuestStatusConfirmed {
+		confirmedAt := now
+		guest.ConfirmedAt = &confirmedAt
+	}
 
-	if err := uc.guestRepo.Create(ctx, guest); err != nil {
-		return nil, fmt.Errorf("invitation.AddGuest: %w", err)
+	err := uc.txManager.WithinTransaction(ctx, func(txCtx context.Context) error {
+		inv, err := uc.invRepo.FindByID(txCtx, weddingID, invitationID)
+		if err != nil {
+			return err
+		}
+
+		if err := uc.guestRepo.Create(txCtx, guest); err != nil {
+			return fmt.Errorf("invitation.AddGuest: %w", err)
+		}
+
+		inv.UpdatedAt = now
+		if err := uc.invRepo.Update(txCtx, inv); err != nil {
+			return fmt.Errorf("invitation.AddGuest: touch invitation: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return guest, nil
+}
+
+func sanitizeGuestStatus(raw string) entity.GuestStatus {
+	status := entity.GuestStatus(raw)
+	switch status {
+	case entity.GuestStatusConfirmed, entity.GuestStatusDeclined:
+		return status
+	default:
+		return entity.GuestStatusPending
+	}
+}
+
+const (
+	invitationCodeDefaultLength = 5
+	invitationCodeMinLength     = 2
+	invitationCodeMaxAttempts   = 100
+	invitationCodeCharset       = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+)
+
+func (uc *UseCase) generateUniqueCode(ctx context.Context, weddingID string) (string, error) {
+	for range invitationCodeMaxAttempts {
+		code, err := generateInvitationCode(uc.codeLength)
+		if err != nil {
+			return "", err
+		}
+		inv, err := uc.invRepo.FindByCode(ctx, weddingID, code)
+		if err == nil && inv != nil {
+			continue
+		}
+		if errors.Is(err, entity.ErrNotFound) {
+			return code, nil
+		}
+		if err != nil {
+			return "", err
+		}
+	}
+	return "", errors.New("não foi possível gerar um código de convite único")
+}
+
+func generateInvitationCode(length int) (string, error) {
+	if length < invitationCodeMinLength {
+		return "", errors.New("tamanho do código deve ser ao menos 2")
+	}
+
+	for {
+		b := make([]byte, length)
+		if _, err := rand.Read(b); err != nil {
+			return "", err
+		}
+
+		hasLetter := false
+		hasNumber := false
+		for i := range b {
+			ch := invitationCodeCharset[int(b[i])%len(invitationCodeCharset)]
+			b[i] = ch
+			if ch >= 'A' && ch <= 'Z' {
+				hasLetter = true
+				continue
+			}
+			if ch >= '0' && ch <= '9' {
+				hasNumber = true
+			}
+		}
+
+		if hasLetter && hasNumber {
+			return string(b), nil
+		}
+	}
 }

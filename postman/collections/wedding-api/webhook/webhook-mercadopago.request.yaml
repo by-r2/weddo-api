@@ -1,0 +1,32 @@
+$kind: http-request
+description: |-
+  Simula uma notificação do Mercado Pago.
+
+  Em produção, este endpoint é chamado automaticamente pelo Mercado Pago.
+
+  - `data.id`: ID do pagamento no Mercado Pago (provider_id)
+
+  Use quando `PAYMENT_PROVIDER=mercadopago`.
+url: "{{baseUrl}}/payments/webhook"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "action": "payment.updated",
+      "data": {
+        "id": "123456789"
+      }
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200 ou 503', () => {
+        pm.expect(pm.response.code).to.be.oneOf([200, 503]);
+      });
+    language: text/javascript
+order: 2000

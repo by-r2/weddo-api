@@ -82,6 +82,10 @@ func (h *GuestHandler) Update(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusNotFound, "Convidado não encontrado.")
 			return
 		}
+		if errors.Is(err, guest.ErrGuestStatusTransitionNotAllowed) {
+			respondError(w, http.StatusConflict, "Transição de status do convidado não permitida.")
+			return
+		}
 		respondInternalError(w, r, "guest.handler.Update", err, "Erro ao atualizar convidado.")
 		return
 	}

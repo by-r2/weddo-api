@@ -1,0 +1,50 @@
+$kind: collection
+name: wedding-api
+description: >-
+  API multi-tenant para sites de casamento.
+
+
+  ## Setup
+
+
+  1. Importe esta collection
+
+  2. Importe o environment `local.environment.yaml`
+
+  3. Rode o servidor: `make run`
+
+  4. Execute **admin > login** para popular `token` e `weddingId`
+  automaticamente
+
+  5. Pronto — todas as requests usarão as variáveis automaticamente
+
+
+  ## Variáveis
+
+
+  | Variável | Preenchida por | Uso |
+
+  |----------|---------------|-----|
+
+  | `baseUrl` | Environment | Base URL do servidor |
+
+  | `token` | login (auto) | Bearer token JWT |
+
+  | `weddingId` | login (auto) | UUID do tenant para endpoints públicos |
+
+  | `invitationId` | create-invitation (auto) | ID do último convite criado |
+
+  | `invitationCode` | create-invitation (auto) | Código do último convite (RSVP
+  público) |
+
+  | `guestId` | list-guests (auto) | ID do primeiro convidado na lista |
+
+  | `giftId` | create-gift (auto) | ID do último presente criado |
+
+  | `paymentId` | checkout-pix (auto) | ID do último pagamento criado |
+auth:
+  - id: f0d4036b-faf5-4b5e-b4f2-3310b473475f
+    type: bearer
+    name: bearer auth
+    credentials:
+      token: "{{token}}"

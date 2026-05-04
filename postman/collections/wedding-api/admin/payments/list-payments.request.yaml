@@ -1,0 +1,20 @@
+$kind: http-request
+description: Lista pagamentos recebidos com filtros opcionais.
+url: "{{baseUrl}}/admin/payments?page=1&per_page=20&status=&gift_id="
+method: GET
+queryParams:
+  - key: page
+    value: "1"
+  - key: per_page
+    value: "20"
+  - key: status
+    value: ""
+    description: pending, approved, rejected, expired
+  - key: gift_id
+    value: ""
+    description: Filtrar por presente
+scripts:
+  - type: afterResponse
+    code: pm.test('Status 200', () => pm.response.to.have.status(200));
+    language: text/javascript
+order: 1000
