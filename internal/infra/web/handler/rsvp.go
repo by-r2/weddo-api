@@ -30,7 +30,12 @@ func (h *RSVPHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 
 	code := strings.TrimSpace(req.Code)
 	name := strings.TrimSpace(req.Name)
-	guest, inv, alreadyConfirmed, err := h.rsvpUC.Confirm(r.Context(), weddingID, code, name)
+	willAttend := true
+	if req.WillAttend != nil {
+		willAttend = *req.WillAttend
+	}
+
+	guest, inv, alreadyApplied, err := h.rsvpUC.Confirm(r.Context(), weddingID, code, name, willAttend)
 	if err != nil {
 		switch {
 		case errors.Is(err, rsvp.ErrInvitationNotFound):
@@ -49,9 +54,17 @@ func (h *RSVPHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 
 	msg := "Presença confirmada com sucesso!"
 	status := http.StatusOK
-	if alreadyConfirmed {
-		msg = "Presença já estava confirmada."
-		status = http.StatusConflict
+	if willAttend {
+		if alreadyApplied {
+			msg = "Presença já estava confirmada."
+			status = http.StatusConflict
+		}
+	} else {
+		if alreadyApplied {
+			msg = "Já tínhamos registrado que você não comparecerá. Obrigado por avisar novamente."
+		} else {
+			msg = "Registramos que você não comparecerá. Obrigado por nos informar!"
+		}
 	}
 
 	respondJSON(w, status, dto.RSVPResponse{

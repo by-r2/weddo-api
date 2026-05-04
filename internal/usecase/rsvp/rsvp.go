@@ -19,8 +19,9 @@ func NewUseCase(gr repository.GuestRepository, ir repository.InvitationRepositor
 	return &UseCase{guestRepo: gr, invitationRepo: ir}
 }
 
-// Confirm registra a confirmação de presença de um convidado no convite identificado por code.
-func (uc *UseCase) Confirm(ctx context.Context, weddingID, invitationCode, guestName string) (*entity.Guest, *entity.Invitation, bool, error) {
+// Confirm registra presença (willAttend true) ou recusa (willAttend false) para um convidado no convite identificado por code.
+// O terceiro retorno (alreadyApplied) indica que o convidado já estava no estado desejado e nenhum UPDATE foi executado.
+func (uc *UseCase) Confirm(ctx context.Context, weddingID, invitationCode, guestName string, willAttend bool) (*entity.Guest, *entity.Invitation, bool, error) {
 	inv, err := uc.invitationRepo.FindByCode(ctx, weddingID, invitationCode)
 	if err != nil {
 		if errors.Is(err, entity.ErrNotFound) {
@@ -37,13 +38,14 @@ func (uc *UseCase) Confirm(ctx context.Context, weddingID, invitationCode, guest
 		return nil, nil, false, err
 	}
 
-	alreadyConfirmed := guest.Status == entity.GuestStatusConfirmed
+	if willAttend {
+		if guest.Status == entity.GuestStatusDeclined {
+			return nil, nil, false, ErrGuestStatusTransitionNotAllowed
+		}
+		if guest.Status == entity.GuestStatusConfirmed {
+			return guest, inv, true, nil
+		}
 
-	if guest.Status == entity.GuestStatusDeclined {
-		return nil, nil, false, ErrGuestStatusTransitionNotAllowed
-	}
-
-	if !alreadyConfirmed {
 		now := time.Now()
 		guest.Status = entity.GuestStatusConfirmed
 		guest.ConfirmedAt = &now
@@ -52,9 +54,22 @@ func (uc *UseCase) Confirm(ctx context.Context, weddingID, invitationCode, guest
 		if err := uc.guestRepo.Update(ctx, guest); err != nil {
 			return nil, nil, false, fmt.Errorf("rsvp.Confirm: %w", err)
 		}
+		return guest, inv, false, nil
 	}
 
-	return guest, inv, alreadyConfirmed, nil
+	if guest.Status == entity.GuestStatusDeclined {
+		return guest, inv, true, nil
+	}
+
+	now := time.Now()
+	guest.Status = entity.GuestStatusDeclined
+	guest.ConfirmedAt = nil
+	guest.UpdatedAt = now
+
+	if err := uc.guestRepo.Update(ctx, guest); err != nil {
+		return nil, nil, false, fmt.Errorf("rsvp.Confirm decline: %w", err)
+	}
+	return guest, inv, false, nil
 }
 
 // FindInvitationByCode busca o convite pelo code (único por wedding) e lista todos os guests.

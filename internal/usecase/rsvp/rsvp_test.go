@@ -14,7 +14,7 @@ import (
 func TestConfirm_invitationNotFound(t *testing.T) {
 	t.Parallel()
 	uc := rsvp.NewUseCase(&guestFake{}, &invFake{findByCodeErr: entity.ErrNotFound})
-	_, _, _, err := uc.Confirm(context.Background(), "w1", "missing", "João")
+	_, _, _, err := uc.Confirm(context.Background(), "w1", "missing", "João", true)
 	if !errors.Is(err, rsvp.ErrInvitationNotFound) {
 		t.Fatalf("got %v, want ErrInvitationNotFound", err)
 	}
@@ -27,7 +27,7 @@ func TestConfirm_guestNotFound(t *testing.T) {
 		&guestFake{findErr: entity.ErrNotFound},
 		&invFake{findByCode: inv},
 	)
-	_, _, _, err := uc.Confirm(context.Background(), "w1", "ABC", "Não existe")
+	_, _, _, err := uc.Confirm(context.Background(), "w1", "ABC", "Não existe", true)
 	if !errors.Is(err, rsvp.ErrGuestNotFoundOnInvitation) {
 		t.Fatalf("got %v, want ErrGuestNotFoundOnInvitation", err)
 	}
@@ -44,7 +44,7 @@ func TestConfirm_success_pending(t *testing.T) {
 	guestR := &guestFake{find: g}
 	uc := rsvp.NewUseCase(guestR, &invFake{findByCode: inv})
 
-	outGuest, outInv, already, err := uc.Confirm(context.Background(), "w1", "ABC", "João")
+	outGuest, outInv, already, err := uc.Confirm(context.Background(), "w1", "ABC", "João", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestConfirm_alreadyConfirmed(t *testing.T) {
 	guestR := &guestFake{find: g}
 	uc := rsvp.NewUseCase(guestR, &invFake{findByCode: inv})
 
-	_, _, already, err := uc.Confirm(context.Background(), "w1", "ABC", "João")
+	_, _, already, err := uc.Confirm(context.Background(), "w1", "ABC", "João", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestConfirm_updateError(t *testing.T) {
 		&guestFake{find: g, updateErr: dbErr},
 		&invFake{findByCode: inv},
 	)
-	_, _, _, err := uc.Confirm(context.Background(), "w1", "ABC", "João")
+	_, _, _, err := uc.Confirm(context.Background(), "w1", "ABC", "João", true)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -119,9 +119,85 @@ func TestConfirm_declinedCannotConfirmAgain(t *testing.T) {
 	guestR := &guestFake{find: g}
 	uc := rsvp.NewUseCase(guestR, &invFake{findByCode: inv})
 
-	_, _, _, err := uc.Confirm(context.Background(), "w1", "ABC", "João")
+	_, _, _, err := uc.Confirm(context.Background(), "w1", "ABC", "João", true)
 	if !errors.Is(err, rsvp.ErrGuestStatusTransitionNotAllowed) {
 		t.Fatalf("got %v, want ErrGuestStatusTransitionNotAllowed", err)
+	}
+	if guestR.updateN != 0 {
+		t.Fatalf("Update should not run, got %d calls", guestR.updateN)
+	}
+}
+
+func TestConfirm_decline_pending(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 4, 1, 12, 0, 0, 0, time.UTC)
+	inv := &entity.Invitation{ID: "inv-1", WeddingID: "w1", Code: "ABC", Label: "Família", MaxGuests: 3}
+	g := &entity.Guest{
+		ID: "g1", InvitationID: inv.ID, WeddingID: "w1", Name: "João",
+		Status: entity.GuestStatusPending, CreatedAt: now, UpdatedAt: now,
+	}
+	guestR := &guestFake{find: g}
+	uc := rsvp.NewUseCase(guestR, &invFake{findByCode: inv})
+
+	outGuest, _, already, err := uc.Confirm(context.Background(), "w1", "ABC", "João", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if already {
+		t.Fatal("expected alreadyApplied false")
+	}
+	if outGuest.Status != entity.GuestStatusDeclined || outGuest.ConfirmedAt != nil {
+		t.Fatalf("guest not declined: %+v", outGuest)
+	}
+	if guestR.updateN != 1 {
+		t.Fatalf("Update calls = %d", guestR.updateN)
+	}
+}
+
+func TestConfirm_decline_from_confirmed(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 4, 1, 12, 0, 0, 0, time.UTC)
+	confirmedAt := now.Add(-time.Hour)
+	inv := &entity.Invitation{ID: "inv-1", WeddingID: "w1", Code: "ABC", Label: "Família", MaxGuests: 3}
+	g := &entity.Guest{
+		ID: "g1", InvitationID: inv.ID, WeddingID: "w1", Name: "João",
+		Status: entity.GuestStatusConfirmed, ConfirmedAt: &confirmedAt, CreatedAt: now, UpdatedAt: now,
+	}
+	guestR := &guestFake{find: g}
+	uc := rsvp.NewUseCase(guestR, &invFake{findByCode: inv})
+
+	outGuest, _, already, err := uc.Confirm(context.Background(), "w1", "ABC", "João", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if already {
+		t.Fatal("expected alreadyApplied false")
+	}
+	if outGuest.Status != entity.GuestStatusDeclined || outGuest.ConfirmedAt != nil {
+		t.Fatalf("guest not declined: %+v", outGuest)
+	}
+	if guestR.updateN != 1 {
+		t.Fatalf("Update calls = %d", guestR.updateN)
+	}
+}
+
+func TestConfirm_decline_already_declined_idempotent(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 4, 1, 12, 0, 0, 0, time.UTC)
+	inv := &entity.Invitation{ID: "inv-1", WeddingID: "w1", Code: "ABC", Label: "Família", MaxGuests: 3}
+	g := &entity.Guest{
+		ID: "g1", InvitationID: inv.ID, WeddingID: "w1", Name: "João",
+		Status: entity.GuestStatusDeclined, CreatedAt: now, UpdatedAt: now,
+	}
+	guestR := &guestFake{find: g}
+	uc := rsvp.NewUseCase(guestR, &invFake{findByCode: inv})
+
+	_, _, already, err := uc.Confirm(context.Background(), "w1", "ABC", "João", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !already {
+		t.Fatal("expected alreadyApplied true")
 	}
 	if guestR.updateN != 0 {
 		t.Fatalf("Update should not run, got %d calls", guestR.updateN)
