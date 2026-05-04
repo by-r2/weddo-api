@@ -36,11 +36,13 @@ POST /api/v1/w/{weddingId}/rsvp
 ```json
 {
   "code": "SILVA-001",
-  "name": "João Silva"
+  "name": "João Silva",
+  "will_attend": true
 }
 ```
 
-O `code` é o mesmo campo do convite em `invitations` (único por casamento), usado também no `GET` abaixo e no painel.
+- `will_attend` (opcional): se omitido ou `true`, confirma presença; se `false`, registra que o convidado não comparecerá (`status` `declined`).
+- O `code` é o mesmo campo do convite em `invitations` (único por casamento), usado também no `GET` abaixo e no painel.
 
 **Response 200 — confirmação registrada:**
 
@@ -87,6 +89,10 @@ Mensagens possíveis: `Convite não encontrado.` ou `Convidado não encontrado n
   "error": "Este convidado recusou o convite e não pode confirmar novamente."
 }
 ```
+
+**Response 200 — recusa registrada (`will_attend: false`):**
+
+O corpo inclui `guest.status` `"declined"` e `confirmed_at` nulo. Mensagens exemplares: confirmação da recusa ou, se já estava recusado, agradecimento idempotente (sem novo `UPDATE`).
 
 ### Consultar convite (lista do grupo)
 

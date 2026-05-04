@@ -8,7 +8,8 @@ description: >-
 
   - **404**: Convite ou convidado não encontrado
 
-  - **409**: Já confirmado anteriormente, ou convidado recusado (status terminal)
+  - **409**: Tentativa de confirmar quando já confirmado, ou convidado recusado tentando confirmar
+  - **200** com `will_attend: false`: recusa registrada ou já estava recusado (idempotente)
 url: "{{baseUrl}}/w/{{weddingId}}/rsvp"
 method: POST
 headers:
@@ -18,13 +19,20 @@ body:
   content: |-
     {
       "code": "{{invitationCode}}",
-      "name": "João Silva"
+      "name": "João Silva",
+      "will_attend": true
     }
 scripts:
   - type: afterResponse
     code: |-
       pm.test('Status 200 ou 409', () => {
-        pm.expect(pm.response.code).to.be.oneOf([200, 409]);
+        const body = pm.response.json();
+        const declined = body.guest && body.guest.status === 'declined';
+        if (declined) {
+          pm.expect(pm.response.code).to.equal(200);
+        } else {
+          pm.expect(pm.response.code).to.be.oneOf([200, 409]);
+        }
       });
       pm.test('Tem mensagem', () => {
         pm.expect(pm.response.json().message).to.be.a('string');
