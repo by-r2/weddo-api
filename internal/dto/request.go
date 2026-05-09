@@ -110,7 +110,7 @@ type CheckoutRequest struct {
 	Items           []CheckoutItemRequest `json:"items" validate:"required,min=1,dive"`
 	PayerName       string                `json:"payer_name" validate:"required,max=100"`
 	PayerEmail      string                `json:"payer_email" validate:"required,email"`
-	Message         string                `json:"message"`
+	Message         string                `json:"message" validate:"max=3000"` // manter alinhado ao CHECKOUT_MESSAGE_MAX_LENGTH no front
 	PaymentMethod   string                `json:"payment_method" validate:"required,oneof=pix credit_card"`
 	CardToken       string                `json:"card_token"`
 	PaymentMethodID string                `json:"payment_method_id"`
