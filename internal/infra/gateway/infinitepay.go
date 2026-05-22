@@ -12,7 +12,7 @@ import (
 	gw "github.com/by-r2/weddo-api/internal/domain/gateway"
 )
 
-const infinitePayBaseURL = "https://api.infinitepay.io/invoices/public/checkout"
+const infinitePayBaseURL = "https://api.checkout.infinitepay.io"
 
 type InfinitePayGateway struct {
 	handle      string
